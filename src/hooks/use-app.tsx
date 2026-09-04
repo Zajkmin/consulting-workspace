@@ -1,0 +1,52 @@
+"use client";
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { initialData } from "@/data/mocks";
+import { localDataStore } from "@/services/storage";
+import type { AppData, DeliverableVersion, Initiative, Project, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
+
+type Ctx = {
+  data: AppData; allData: AppData; currentUser: User | null; authReady: boolean; notice: string;
+  login:(email:string,password:string)=>boolean; logout:()=>void; clearNotice:()=>void;
+  saveUser:(u:User)=>void; addUser:(u:User)=>void; saveTask:(t:Task)=>void; addTask:(t:Task)=>void;
+  deleteUser:(id:string)=>void; saveProject:(p:Project)=>void; addProject:(p:Project)=>void; deleteProject:(id:string)=>void; addArea:(projectId:string,name:string)=>void;
+  addInitiative:(i:Initiative)=>void; addVersion:(v:DeliverableVersion)=>void; deleteInitiative:(id:string)=>void; deleteVersion:(id:string)=>void; deleteTask:(id:string)=>void; saveHierarchy:(i:Initiative[],v:DeliverableVersion[],t:Task[])=>void;
+  toggleSubtask:(t:string,s:string)=>void; saveBlock:(b:ScheduleBlock)=>void; deleteBlock:(id:string)=>void; savePreferences:(p:WorkPreferences)=>void; toggleBlock:(id:string)=>void; scheduleTask:(id:string)=>void; replan:()=>void;
+};
+const Context=createContext<Ctx|null>(null);
+
+export function AppProvider({children}:{children:React.ReactNode}){
+  const[allData,setAllData]=useState(initialData),[currentUserId,setCurrentUserId]=useState<string|null>(null),[authReady,setAuthReady]=useState(false),[notice,setNotice]=useState("");
+  useEffect(()=>{const stored=localDataStore.load();if(stored?.users){setAllData({...stored,workPreferences:stored.workPreferences??initialData.workPreferences,projects:stored.projects.map(p=>({...p,areas:p.areas??initialData.projects.find(x=>x.id===p.id)?.areas??[p.area]})),users:stored.users.map(u=>{const seed=initialData.users.find(x=>x.id===u.id);return{...u,editableProjectIds:u.editableProjectIds??seed?.editableProjectIds??[],permissions:u.permissions??seed?.permissions??{manageUsers:false,manageProjects:false,manageSchedule:true}}})})}else setAllData(initialData);setCurrentUserId(localDataStore.loadSession());setAuthReady(true)},[]);
+  useEffect(()=>{if(authReady)localDataStore.save(allData)},[allData,authReady]);
+  const currentUser=allData.users.find(u=>u.id===currentUserId&&u.active)??null;
+  const allowed=currentUser?(currentUser.role==="admin"?allData.projects.map(p=>p.id):currentUser.assignedProjectIds):[];
+  const data=useMemo(()=>({...allData,user:currentUser??allData.user,projects:allData.projects.filter(p=>allowed.includes(p.id)),initiatives:allData.initiatives.filter(i=>allowed.includes(i.projectId)),versions:allData.versions.filter(v=>allData.initiatives.some(i=>i.id===v.initiativeId&&allowed.includes(i.projectId))),tasks:allData.tasks.filter(t=>allowed.includes(t.projectId)),schedule:allData.schedule.filter(b=>allData.tasks.some(t=>t.id===b.taskId&&allowed.includes(t.projectId)))}),[allData,currentUserId]);
+  const mutate=(fn:(d:AppData)=>AppData)=>setAllData(d=>fn(structuredClone(d)));
+  const login=(email:string,password:string)=>{const u=allData.users.find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.active);if(!u||password!=="consulting123")return false;setCurrentUserId(u.id);localDataStore.saveSession(u.id);return true};
+  const logout=()=>{setCurrentUserId(null);localDataStore.saveSession(null)};
+  const saveUser=(user:User)=>mutate(d=>({...d,users:d.users.map(u=>u.id===user.id?user:u)}));
+  const addUser=(user:User)=>mutate(d=>({...d,users:[...d.users,user]}));
+  const deleteUser=(id:string)=>{if(id===currentUserId)return;mutate(d=>({...d,users:d.users.filter(u=>u.id!==id)}));setNotice("Usuario eliminado.")};
+  const saveProject=(project:Project)=>mutate(d=>({...d,projects:d.projects.map(p=>p.id===project.id?project:p)}));
+  const addProject=(project:Project)=>{mutate(d=>({...d,projects:[...d.projects,project],users:d.users.map(u=>u.role==="admin"?{...u,assignedProjectIds:[...u.assignedProjectIds,project.id],editableProjectIds:[...(u.editableProjectIds??[]),project.id]}:u)}));setNotice("Proyecto creado.")};
+  const deleteProject=(id:string)=>{mutate(d=>{const initiativeIds=new Set(d.initiatives.filter(i=>i.projectId===id).map(i=>i.id));const versionIds=new Set(d.versions.filter(v=>initiativeIds.has(v.initiativeId)).map(v=>v.id));const taskIds=new Set(d.tasks.filter(t=>t.projectId===id).map(t=>t.id));return{...d,projects:d.projects.filter(p=>p.id!==id),initiatives:d.initiatives.filter(i=>i.projectId!==id),versions:d.versions.filter(v=>!versionIds.has(v.id)),tasks:d.tasks.filter(t=>t.projectId!==id),schedule:d.schedule.filter(b=>!taskIds.has(b.taskId)),users:d.users.map(u=>({...u,assignedProjectIds:u.assignedProjectIds.filter(x=>x!==id),editableProjectIds:(u.editableProjectIds??[]).filter(x=>x!==id)}))}});setNotice("Proyecto y contenido relacionado eliminados.")};
+  const addArea=(projectId:string,name:string)=>mutate(d=>({...d,projects:d.projects.map(p=>p.id===projectId?{...p,areas:[...new Set([...(p.areas??[]),name])]}:p)}));
+  const saveTask=(task:Task)=>mutate(d=>({...d,tasks:d.tasks.map(t=>t.id===task.id?task:t)}));
+  const addTask=(task:Task)=>mutate(d=>({...d,tasks:[...d.tasks,task],versions:d.versions.map(v=>v.id===task.versionId?{...v,taskIds:[...v.taskIds,task.id]}:v)}));
+  const addInitiative=(i:Initiative)=>mutate(d=>({...d,initiatives:[...d.initiatives,i]}));
+  const addVersion=(version:DeliverableVersion)=>mutate(d=>({...d,versions:[...d.versions,version],initiatives:d.initiatives.map(i=>i.id===version.initiativeId?{...i,versionIds:[...i.versionIds,version.id]}:i)}));
+  const deleteInitiative=(id:string)=>{mutate(d=>{const versionIds=new Set(d.versions.filter(v=>v.initiativeId===id).map(v=>v.id));const taskIds=new Set(d.tasks.filter(t=>t.initiativeId===id).map(t=>t.id));return{...d,initiatives:d.initiatives.filter(i=>i.id!==id),versions:d.versions.filter(v=>!versionIds.has(v.id)),tasks:d.tasks.filter(t=>t.initiativeId!==id),schedule:d.schedule.filter(b=>!taskIds.has(b.taskId))}});setNotice("Iniciativa eliminada.")};
+  const deleteVersion=(id:string)=>{mutate(d=>{const taskIds=new Set(d.tasks.filter(t=>t.versionId===id).map(t=>t.id));return{...d,versions:d.versions.filter(v=>v.id!==id),initiatives:d.initiatives.map(i=>({...i,versionIds:i.versionIds.filter(v=>v!==id)})),tasks:d.tasks.filter(t=>t.versionId!==id),schedule:d.schedule.filter(b=>!taskIds.has(b.taskId))}});setNotice("Versión eliminada.")};
+  const deleteTask=(id:string)=>{mutate(d=>({...d,tasks:d.tasks.filter(t=>t.id!==id),versions:d.versions.map(v=>({...v,taskIds:v.taskIds.filter(t=>t!==id)})),schedule:d.schedule.filter(b=>b.taskId!==id)}));setNotice("Tarea eliminada.")};
+  const saveHierarchy=(initiatives:Initiative[],versions:DeliverableVersion[],tasks:Task[])=>{mutate(d=>{const mergedTasks=d.tasks.map(x=>tasks.find(t=>t.id===x.id)??x),mergedVersions=d.versions.map(x=>versions.find(v=>v.id===x.id)??x).map(v=>({...v,taskIds:mergedTasks.filter(t=>t.versionId===v.id).map(t=>t.id)}));return{...d,initiatives:d.initiatives.map(x=>initiatives.find(i=>i.id===x.id)??x),versions:mergedVersions,tasks:mergedTasks}});setNotice("Los cambios se guardaron y ya están reflejados en toda la aplicación.")};
+  const toggleSubtask=(taskId:string,subtaskId:string)=>mutate(d=>({...d,tasks:d.tasks.map(t=>{if(t.id!==taskId)return t;const subtasks=t.subtasks.map(s=>s.id===subtaskId?{...s,completed:!s.completed}:s);const progress=subtasks.length?Math.round(subtasks.filter(s=>s.completed).length/subtasks.length*100):t.progress;return{...t,subtasks,progress,status:progress===100?"Completada":progress>0?"En curso":t.status}})}));
+  const saveBlock=(block:ScheduleBlock)=>{mutate(d=>({...d,schedule:d.schedule.some(b=>b.id===block.id)?d.schedule.map(b=>b.id===block.id?block:b):[...d.schedule,block]}));setNotice("Bloque de agenda guardado.")};
+  const deleteBlock=(id:string)=>{mutate(d=>({...d,schedule:d.schedule.filter(b=>b.id!==id)}));setNotice("Bloque eliminado de la agenda.")};
+  const savePreferences=(workPreferences:WorkPreferences)=>{mutate(d=>({...d,workPreferences}));setNotice("Preferencias de trabajo actualizadas.")};
+  const toggleBlock=(id:string)=>mutate(d=>({...d,schedule:d.schedule.map(b=>b.id===id?{...b,completed:!b.completed}:b)}));
+  const scheduleTask=(taskId:string)=>{mutate(d=>({...d,schedule:[...d.schedule,{id:`b-${Date.now()}`,taskId,date:"2026-09-04",startTime:"15:00",endTime:"16:00",source:"suggested",completed:false}]}));setNotice("Encontramos un espacio el viernes a las 15:00.")};
+  const replan=()=>{mutate(d=>({...d,schedule:d.schedule.map((b,i)=>i===3?{...b,startTime:"10:00",endTime:"11:30"}:i===7?{...b,startTime:"09:00",endTime:"11:00"}:b)}));setNotice("La semana fue reorganizada manteniendo tus prioridades.")};
+  return <Context.Provider value={{data,allData,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,addArea,saveTask,addTask,addInitiative,addVersion,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,toggleBlock,scheduleTask,replan}}>{children}</Context.Provider>
+}
+export function useApp(){const v=useContext(Context);if(!v)throw new Error("useApp fuera de AppProvider");return v}

@@ -1,0 +1,1 @@
+import type{Priority,TaskStatus}from"@/types";export function StatusPill({value}:{value:Priority|TaskStatus}){return <span className={`pill ${value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replaceAll(" ","-")}`}>{value}</span>}

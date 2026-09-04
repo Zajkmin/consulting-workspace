@@ -1,0 +1,3 @@
+"use client";
+import{useEffect}from"react";import{usePathname,useRouter}from"next/navigation";import{useApp}from"@/hooks/use-app";import{Header}from"./header";
+export function AppShell({children}:{children:React.ReactNode}){const{currentUser,authReady}=useApp(),path=usePathname(),router=useRouter(),loginPage=path==="/login";useEffect(()=>{if(!authReady)return;if(!currentUser&&!loginPage)router.replace("/login");if(currentUser&&loginPage)router.replace("/")},[authReady,currentUser,loginPage,router]);if(!authReady)return <div className="auth-loading"><span className="brand-mark">G</span></div>;if(loginPage)return <>{children}</>;if(!currentUser)return null;return <><Header/>{children}</>}

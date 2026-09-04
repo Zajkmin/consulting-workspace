@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestión de consultoría
 
-## Getting Started
+`consulting-workspace` es un frontend para organizar proyectos, iniciativas, versiones, tareas y agenda de una consultora. Está construido con Next.js, App Router, TypeScript y Tailwind CSS, utilizando datos simulados y persistencia local.
 
-First, run the development server:
+## Ejecutar localmente
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir `http://localhost:3000`. Para validar una entrega, ejecutar `npm run lint` y `npm run build`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Datos y servicios
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Los componentes consumen el estado de la aplicación y no importan mocks directamente. La capa `src/services` expone `projectService`, `taskService` y `scheduleService`; actualmente resuelven datos locales de `src/data/mocks`. Los cambios se guardan mediante `services/storage.ts` en `localStorage`.
 
-## Learn More
+Para conectar Laravel se reemplazarán esos servicios por solicitudes HTTP a `NEXT_PUBLIC_API_URL`, conservando sus contratos TypeScript. La persistencia local se retirará o quedará limitada a preferencias del dispositivo. Esta versión no realiza llamadas a dicha URL.
 
-To learn more about Next.js, take a look at the following resources:
+Claude deberá integrarse posteriormente desde Laravel para no exponer credenciales y devolver propuestas de planificación mediante los mismos servicios.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Acceso y permisos del prototipo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+La pantalla `/login` simula una sesión local. Los usuarios de demostración utilizan la contraseña `consulting123`. Un consultor recibe únicamente los proyectos asignados; un administrador accede a todos y puede gestionar las asignaciones desde `/usuarios`.
 
-## Deploy on Vercel
+Esta capa es únicamente visual y funcional. Al conectar Laravel, el backend deberá validar credenciales, emitir la sesión segura y aplicar la autorización en cada consulta; ocultar proyectos en React no sustituye los permisos del servidor.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Flujo administrativo local
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El administrador puede crear, editar, archivar o eliminar proyectos y áreas. Dentro de cada proyecto puede gestionar iniciativas, versiones y tareas desde la tabla maestra. El panel de usuarios permite conceder acceso de lectura o edición por proyecto y permisos separados para proyectos, agenda y usuarios. Todos estos cambios se guardan exclusivamente en `localStorage`.
