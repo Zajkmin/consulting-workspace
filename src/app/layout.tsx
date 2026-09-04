@@ -9,8 +9,8 @@ import { AppProvider } from "@/hooks/use-app";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
-  title: "Gestión de consultoría — Proyectos y agenda",
-  description: "Espacio de trabajo para gestionar proyectos, iniciativas, tareas y agenda de consultoría.",
+  title: "Gestión de Trabajo — Proyectos y agenda",
+  description: "Espacio para gestionar proyectos, iniciativas, tareas y agenda de trabajo.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

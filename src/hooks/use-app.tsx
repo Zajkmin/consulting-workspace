@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "@/data/mocks";
 import { localDataStore } from "@/services/storage";
-import type { AppData, DeliverableVersion, Initiative, Project, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
+import type { AppData, DailyTaskOutcome, DeliverableVersion, Initiative, Project, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
 
 type Ctx = {
   data: AppData; allData: AppData; currentUser: User | null; authReady: boolean; notice: string;
@@ -11,7 +11,7 @@ type Ctx = {
   saveUser:(u:User)=>void; addUser:(u:User)=>void; saveTask:(t:Task)=>void; addTask:(t:Task)=>void;
   deleteUser:(id:string)=>void; saveProject:(p:Project)=>void; addProject:(p:Project)=>void; deleteProject:(id:string)=>void; addArea:(projectId:string,name:string)=>void;
   addInitiative:(i:Initiative)=>void; addVersion:(v:DeliverableVersion)=>void; deleteInitiative:(id:string)=>void; deleteVersion:(id:string)=>void; deleteTask:(id:string)=>void; saveHierarchy:(i:Initiative[],v:DeliverableVersion[],t:Task[])=>void;
-  toggleSubtask:(t:string,s:string)=>void; saveBlock:(b:ScheduleBlock)=>void; deleteBlock:(id:string)=>void; savePreferences:(p:WorkPreferences)=>void; toggleBlock:(id:string)=>void; scheduleTask:(id:string)=>void; replan:()=>void;
+  toggleSubtask:(t:string,s:string)=>void; saveBlock:(b:ScheduleBlock)=>void; deleteBlock:(id:string)=>void; savePreferences:(p:WorkPreferences)=>void; setBlockOutcome:(id:string,outcome:DailyTaskOutcome)=>void; scheduleTask:(id:string)=>void; replan:()=>void;
 };
 const Context=createContext<Ctx|null>(null);
 
@@ -44,9 +44,9 @@ export function AppProvider({children}:{children:React.ReactNode}){
   const saveBlock=(block:ScheduleBlock)=>{mutate(d=>({...d,schedule:d.schedule.some(b=>b.id===block.id)?d.schedule.map(b=>b.id===block.id?block:b):[...d.schedule,block]}));setNotice("Bloque de agenda guardado.")};
   const deleteBlock=(id:string)=>{mutate(d=>({...d,schedule:d.schedule.filter(b=>b.id!==id)}));setNotice("Bloque eliminado de la agenda.")};
   const savePreferences=(workPreferences:WorkPreferences)=>{mutate(d=>({...d,workPreferences}));setNotice("Preferencias de trabajo actualizadas.")};
-  const toggleBlock=(id:string)=>mutate(d=>({...d,schedule:d.schedule.map(b=>b.id===id?{...b,completed:!b.completed}:b)}));
+  const setBlockOutcome=(id:string,outcome:DailyTaskOutcome)=>{mutate(d=>{const block=d.schedule.find(b=>b.id===id);if(!block)return d;const schedule=d.schedule.map(b=>b.id===id?{...b,outcome,completed:outcome==="completed"}:b);if(outcome!=="completed")return{...d,schedule,tasks:d.tasks.map(t=>t.id===block.taskId&&outcome==="advanced"&&t.status==="Pendiente"?{...t,status:"En curso"}:t)};const tasks=d.tasks.map(t=>t.id===block.taskId?{...t,status:"Completada" as const,progress:100,subtasks:t.subtasks.map(s=>({...s,completed:true}))}:t),trimmedSchedule=schedule.filter(b=>b.taskId!==block.taskId||b.date<=block.date),versions=d.versions.map(v=>{const related=tasks.filter(t=>t.versionId===v.id);return related.length&&related.every(t=>t.status==="Completada")?{...v,status:"Completada" as const}:v}),initiatives=d.initiatives.map(i=>{const related=versions.filter(v=>v.initiativeId===i.id);return related.length&&related.every(v=>v.status==="Completada")?{...i,status:"Completada" as const}:i});return{...d,schedule:trimmedSchedule,tasks,versions,initiatives}});setNotice(outcome==="completed"?"Tarea completada y retirada de los próximos días.":outcome==="advanced"?"Avance registrado para este día.":"Tarea marcada como pendiente.")};
   const scheduleTask=(taskId:string)=>{mutate(d=>({...d,schedule:[...d.schedule,{id:`b-${Date.now()}`,taskId,date:"2026-09-04",startTime:"15:00",endTime:"16:00",source:"suggested",completed:false}]}));setNotice("Encontramos un espacio el viernes a las 15:00.")};
   const replan=()=>{mutate(d=>({...d,schedule:d.schedule.map((b,i)=>i===3?{...b,startTime:"10:00",endTime:"11:30"}:i===7?{...b,startTime:"09:00",endTime:"11:00"}:b)}));setNotice("La semana fue reorganizada manteniendo tus prioridades.")};
-  return <Context.Provider value={{data,allData,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,addArea,saveTask,addTask,addInitiative,addVersion,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,toggleBlock,scheduleTask,replan}}>{children}</Context.Provider>
+  return <Context.Provider value={{data,allData,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,addArea,saveTask,addTask,addInitiative,addVersion,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,setBlockOutcome,scheduleTask,replan}}>{children}</Context.Provider>
 }
 export function useApp(){const v=useContext(Context);if(!v)throw new Error("useApp fuera de AppProvider");return v}
