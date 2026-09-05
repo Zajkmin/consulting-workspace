@@ -1,26 +1,55 @@
-import type { AppData, Project } from "@/types";
-import type { ProjectRepository, WorkspaceRepository } from "@/services/repository";
+import type { AppData, Project } from "../types/index.ts";
+import type { ProjectRepository, WorkspaceRepository } from "./repository.ts";
+import { encodeGraphId, SharePointGraphClient } from "./sharepoint/graph-client.ts";
+import { mapSharePointProject, type SharePointProjectItem } from "./sharepoint/project-mapper.ts";
 
-export class SharePointNotConfiguredError extends Error {
+interface ListItemsResponse {
+  value?: SharePointProjectItem[];
+  "@odata.nextLink"?: string;
+}
+
+export class SharePointWriteNotImplementedError extends Error {
   constructor() {
-    super("SharePointRepository todavía no está configurado. Falta consentimiento administrativo y credenciales del servidor.");
-    this.name = "SharePointNotConfiguredError";
+    super("Las escrituras de SharePoint todavía no están habilitadas.");
+    this.name = "SharePointWriteNotImplementedError";
   }
 }
 
-const unavailable = (): never => { throw new SharePointNotConfiguredError(); };
-
 class SharePointProjectRepository implements ProjectRepository {
-  async list(): Promise<Project[]> { return unavailable(); }
-  async getById(): Promise<Project | null> { return unavailable(); }
-  async create(): Promise<Project> { return unavailable(); }
-  async update(): Promise<Project> { return unavailable(); }
-  async delete(): Promise<void> { return unavailable(); }
+  private readonly client: SharePointGraphClient;
+  private readonly siteId: string;
+
+  constructor(client: SharePointGraphClient, siteId: string) { this.client = client; this.siteId = siteId; }
+
+  async list(): Promise<Project[]> {
+    const projects: Project[] = [];
+    let next: string | undefined = `/sites/${encodeGraphId(this.siteId)}/lists/${encodeURIComponent(this.client.config.projectsListId)}/items?$select=id&$expand=fields($select=Title,AppId,ClientId,ColorHex,PrimaryArea,IsActive)&$top=200`;
+    while (next) {
+      const page: ListItemsResponse = await this.client.get<ListItemsResponse>(next);
+      projects.push(...(page.value ?? []).map(mapSharePointProject));
+      next = page["@odata.nextLink"];
+    }
+    return projects;
+  }
+
+  async getById(id: string): Promise<Project | null> {
+    return (await this.list()).find((project) => project.id === id) ?? null;
+  }
+
+  async create(): Promise<Project> { throw new SharePointWriteNotImplementedError(); }
+  async update(): Promise<Project> { throw new SharePointWriteNotImplementedError(); }
+  async delete(): Promise<void> { throw new SharePointWriteNotImplementedError(); }
 }
 
 export class SharePointRepository implements WorkspaceRepository {
   readonly provider = "sharepoint" as const;
-  readonly projects: ProjectRepository = new SharePointProjectRepository();
+  readonly projects: ProjectRepository;
 
-  async bootstrap(): Promise<AppData> { return unavailable(); }
+  constructor(client: SharePointGraphClient = new SharePointGraphClient(), siteId: string = client.config.siteId) {
+    this.projects = new SharePointProjectRepository(client, siteId);
+  }
+
+  async bootstrap(): Promise<AppData> {
+    throw new SharePointWriteNotImplementedError();
+  }
 }

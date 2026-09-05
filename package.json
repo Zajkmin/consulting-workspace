@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "sharepoint:test": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-sharepoint-connection.ts",
+    "sharepoint:provision": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/provision-sharepoint.ts"
   },
   "dependencies": {
     "next": "16.3.4",

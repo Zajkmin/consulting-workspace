@@ -11,6 +11,6 @@ export interface DeliverableVersion { id:string; initiativeId:string; code:strin
 export interface Initiative { id:string; projectId:string; name:string; description?:string; successCriteria?:string; area:string; status:TaskStatus; owner:string; startDate:string; deadline:string; impact:"Alto"|"Medio"|"Bajo"; versionIds:string[] }
 export interface CalendarEvent { id:string; title:string; date:string; startTime:string; endTime:string }
 export type DailyTaskOutcome = "planned" | "advanced" | "completed";
-export interface ScheduleBlock { id:string; taskId:string; date:string; startTime:string; endTime:string; source:"manual"|"suggested"; completed:boolean; outcome?:DailyTaskOutcome }
+export interface ScheduleBlock { id:string; taskId:string; date:string; startTime:string; endTime:string; source:"manual"|"suggested"; completed:boolean; completedAt?:string; outcome?:DailyTaskOutcome }
 export interface WorkPreferences { dayStart:string; dayEnd:string; workingDays:number[]; focusBlockMinutes:number }
 export interface AppData { user:User; users:User[]; clients:Client[]; projects:Project[]; initiatives:Initiative[]; versions:DeliverableVersion[]; tasks:Task[]; schedule:ScheduleBlock[]; workPreferences:WorkPreferences }
