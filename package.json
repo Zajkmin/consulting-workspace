@@ -9,7 +9,10 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "sharepoint:test": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-sharepoint-connection.ts",
-    "sharepoint:provision": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/provision-sharepoint.ts"
+    "sharepoint:provision": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/provision-sharepoint.ts",
+    "sharepoint:resolve-list-ids": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/resolve-sharepoint-list-ids.ts",
+    "sharepoint:test-all": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-sharepoint-all.ts",
+    "sharepoint:test-write-client": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-write-client.ts"
   },
   "dependencies": {
     "next": "16.3.4",

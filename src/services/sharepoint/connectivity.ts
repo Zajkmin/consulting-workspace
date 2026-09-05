@@ -40,7 +40,7 @@ export async function testSharePointConnectivity(): Promise<SharePointConnectivi
     }
     status.list = "ok";
 
-    const projects = await new SharePointRepository(client, site.id).projects.list();
+    const projects = await new SharePointRepository(client).projects.list();
     status.items = "ok";
     return { status, projectsRead: projects.length, errors };
   } catch (error) {

@@ -154,7 +154,7 @@ La combinación `TaskId + DependsOnTaskId` es única en la aplicación.
 | Objeto Entra | `EntraObjectId` | Text | No | Sí | Sí | identidad futura |
 | Correo | `Email` | Text | Sí | Sí | Sí | `email` |
 | Iniciales | `Initials` | Text | Sí | No | No | `initials` |
-| Rol | `Role` | Choice | Sí | No | Sí | `admin`, `consultor` |
+| Rol | `Role` | Choice | Sí | No | Sí | `admin`, `usuario` |
 | Gestiona usuarios | `ManageUsers` | Bool | Sí | No | No | `permissions.manageUsers` |
 | Gestiona proyectos | `ManageProjects` | Bool | Sí | No | No | `permissions.manageProjects` |
 | Gestiona agenda | `ManageSchedule` | Bool | Sí | No | No | `permissions.manageSchedule` |

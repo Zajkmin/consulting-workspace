@@ -1,6 +1,6 @@
 export type Priority = "Alta" | "Media" | "Baja";
 export type TaskStatus = "Pendiente" | "En curso" | "En revisión" | "Completada" | "Retrasada";
-export type UserRole = "admin" | "consultor";
+export type UserRole = "admin" | "usuario";
 export interface UserPermissions { manageUsers:boolean; manageProjects:boolean; manageSchedule:boolean }
 export interface User { id:string; name:string; email:string; initials:string; role:UserRole; assignedProjectIds:string[]; editableProjectIds?:string[]; permissions?:UserPermissions; active:boolean }
 export interface Client { id: string; name: string }

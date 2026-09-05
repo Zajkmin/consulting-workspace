@@ -5,6 +5,7 @@ const GRAPH_ORIGIN = "https://graph.microsoft.com";
 export const encodeGraphId = (value: string): string => value.split(",").map(encodeURIComponent).join(",");
 
 interface TokenResponse { access_token?: string; expires_in?: number }
+interface GraphRequestOptions { headers?: Record<string, string> }
 
 export class SharePointGraphClient {
   private tokenPromise: Promise<string> | null = null;
@@ -41,19 +42,23 @@ export class SharePointGraphClient {
     return payload.access_token;
   }
 
-  async get<T>(pathOrUrl: string): Promise<T> {
-    return this.request<T>("GET", pathOrUrl);
+  async get<T>(pathOrUrl: string, options?: GraphRequestOptions): Promise<T> {
+    return this.request<T>("GET", pathOrUrl, undefined, options);
   }
 
-  async post<T>(pathOrUrl: string, body: unknown): Promise<T> {
-    return this.request<T>("POST", pathOrUrl, body);
+  async post<T>(pathOrUrl: string, body: unknown, options?: GraphRequestOptions): Promise<T> {
+    return this.request<T>("POST", pathOrUrl, body, options);
   }
 
-  async patch<T>(pathOrUrl: string, body: unknown): Promise<T> {
-    return this.request<T>("PATCH", pathOrUrl, body);
+  async patch<T>(pathOrUrl: string, body: unknown, options?: GraphRequestOptions): Promise<T> {
+    return this.request<T>("PATCH", pathOrUrl, body, options);
   }
 
-  private async request<T>(method: "GET" | "POST" | "PATCH", pathOrUrl: string, body?: unknown): Promise<T> {
+  async delete(pathOrUrl: string, options?: GraphRequestOptions): Promise<void> {
+    await this.request<void>("DELETE", pathOrUrl, undefined, options);
+  }
+
+  private async request<T>(method: "GET" | "POST" | "PATCH" | "DELETE", pathOrUrl: string, body?: unknown, options?: GraphRequestOptions): Promise<T> {
     const url = pathOrUrl.startsWith("http") ? new URL(pathOrUrl) : new URL(`/v1.0${pathOrUrl}`, GRAPH_ORIGIN);
     if (url.origin !== GRAPH_ORIGIN) throw new SharePointConnectionError("GRAPH_REQUEST_FAILED", "Microsoft Graph devolvió una dirección de paginación no válida.");
     const token = await this.acquireAccessToken();
@@ -65,6 +70,7 @@ export class SharePointGraphClient {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
           ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+          ...options?.headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         cache: "no-store",
@@ -72,7 +78,7 @@ export class SharePointGraphClient {
     } catch {
       throw new SharePointConnectionError("GRAPH_REQUEST_FAILED", "No se pudo contactar a Microsoft Graph.");
     }
-    if (response.ok) return response.json() as Promise<T>;
+    if (response.ok) return response.status === 204 ? undefined as T : response.json() as Promise<T>;
     if (response.status === 401 || response.status === 403) throw new SharePointConnectionError("GRAPH_ACCESS_DENIED", "Microsoft Graph denegó el acceso al recurso solicitado.", response.status);
     if (response.status === 404) throw new SharePointConnectionError("GRAPH_NOT_FOUND", "Microsoft Graph no encontró el sitio o la lista configurada.", response.status);
     throw new SharePointConnectionError("GRAPH_REQUEST_FAILED", "Microsoft Graph no pudo completar la solicitud.", response.status);

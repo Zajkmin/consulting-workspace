@@ -21,7 +21,7 @@ El esquema y el orden de migración están documentados en [`docs/sharepoint-sch
 
 ## Acceso y permisos del prototipo
 
-La pantalla `/login` simula una sesión local. Los usuarios de demostración utilizan la contraseña `consulting123`. Un consultor recibe únicamente los proyectos asignados; un administrador accede a todos y puede gestionar las asignaciones desde `/usuarios`.
+La pantalla `/login` simula una sesión local. Los usuarios de demostración utilizan la contraseña `consulting123`. Un usuario recibe únicamente los proyectos asignados; un administrador accede a todos y puede gestionar las asignaciones desde `/usuarios`.
 
 Esta capa es únicamente visual y funcional. Al habilitar Microsoft Entra y Graph, el servidor deberá validar la sesión y aplicar la autorización en cada consulta; ocultar proyectos en React no sustituye los permisos del servidor.
 
