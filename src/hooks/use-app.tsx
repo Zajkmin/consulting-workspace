@@ -15,11 +15,11 @@ type Ctx = {
 };
 const Context=createContext<Ctx|null>(null);
 
-export function AppProvider({children}:{children:React.ReactNode}){
+export function AppProvider({children,authenticatedUser}:{children:React.ReactNode;authenticatedUser?:User}){
   const[allData,setAllData]=useState(initialData),[currentUserId,setCurrentUserId]=useState<string|null>(null),[authReady,setAuthReady]=useState(false),[notice,setNotice]=useState("");
   useEffect(()=>{const stored=localDataStore.load();if(stored?.users){setAllData({...stored,workPreferences:stored.workPreferences??initialData.workPreferences,projects:stored.projects.map(p=>({...p,areas:p.areas??initialData.projects.find(x=>x.id===p.id)?.areas??[p.area]})),users:stored.users.map(u=>{const seed=initialData.users.find(x=>x.id===u.id);return{...u,editableProjectIds:u.editableProjectIds??seed?.editableProjectIds??[],permissions:u.permissions??seed?.permissions??{manageUsers:false,manageProjects:false,manageSchedule:true}}})})}else setAllData(initialData);setCurrentUserId(localDataStore.loadSession());setAuthReady(true)},[]);
   useEffect(()=>{if(authReady)localDataStore.save(allData)},[allData,authReady]);
-  const currentUser=allData.users.find(u=>u.id===currentUserId&&u.active)??null;
+  const currentUser=authenticatedUser??allData.users.find(u=>u.id===currentUserId&&u.active)??null;
   const allowed=currentUser?(currentUser.role==="admin"?allData.projects.map(p=>p.id):currentUser.assignedProjectIds):[];
   const data=useMemo(()=>({...allData,user:currentUser??allData.user,projects:allData.projects.filter(p=>allowed.includes(p.id)),initiatives:allData.initiatives.filter(i=>allowed.includes(i.projectId)),versions:allData.versions.filter(v=>allData.initiatives.some(i=>i.id===v.initiativeId&&allowed.includes(i.projectId))),tasks:allData.tasks.filter(t=>allowed.includes(t.projectId)),schedule:allData.schedule.filter(b=>allData.tasks.some(t=>t.id===b.taskId&&allowed.includes(t.projectId)))}),[allData,currentUserId]);
   const mutate=(fn:(d:AppData)=>AppData)=>setAllData(d=>fn(structuredClone(d)));

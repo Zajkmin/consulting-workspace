@@ -12,10 +12,12 @@
     "sharepoint:provision": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/provision-sharepoint.ts",
     "sharepoint:resolve-list-ids": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/resolve-sharepoint-list-ids.ts",
     "sharepoint:test-all": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-sharepoint-all.ts",
-    "sharepoint:test-write-client": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-write-client.ts"
+    "sharepoint:test-write-client": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-write-client.ts",
+    "sharepoint:bootstrap-admin": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "next": "16.3.4",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
