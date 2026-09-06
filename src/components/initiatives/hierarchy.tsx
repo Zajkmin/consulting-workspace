@@ -25,7 +25,9 @@ const statuses: TaskStatus[] = [
   emptyFilters = {
     text: "",
     progress: "all",
-    owner: "all",
+    initiativeOwner: "all",
+    versionOwner: "all",
+    taskOwner: "all",
     start: "",
     deadline: "",
     status: "all",
@@ -77,9 +79,26 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       "Todas",
       ...new Set([...(project?.areas ?? []), ...all.map((i) => i.area)]),
     ],
-    ownerOptions = [
+    initiativeOwnerOptions = [
       ...new Set(all.flatMap((i) => (i.owners?.length ? i.owners : [i.owner]))),
     ].sort(),
+    versionOwnerOptions = [...new Set(sourceV.map((v) => v.owner))].sort(),
+    taskOwnerOptions = [...new Set(sourceT.map((t) => t.assignedTo))].sort(),
+    visibleTasks = (versionId: string) =>
+      sourceT.filter(
+        (task) =>
+          task.versionId === versionId &&
+          (filters.taskOwner === "all" ||
+            task.assignedTo === filters.taskOwner),
+      ),
+    visibleVersions = (initiativeId: string) =>
+      sourceV.filter(
+        (version) =>
+          version.initiativeId === initiativeId &&
+          (filters.versionOwner === "all" ||
+            version.owner === filters.versionOwner) &&
+          (filters.taskOwner === "all" || visibleTasks(version.id).length > 0),
+      ),
     matchesProgress = (value: number) =>
       filters.progress === "all" ||
       (filters.progress === "0" && value === 0) ||
@@ -87,6 +106,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       (filters.progress === "100" && value === 100),
     items = all.filter((i) => {
       const versions = sourceV.filter((v) => v.initiativeId === i.id),
+        matchingVersions = visibleVersions(i.id),
         names = i.owners?.length ? i.owners : [i.owner],
         text =
           `${i.name} ${i.area} ${versions.map((v) => `${v.code} ${v.name}`).join(" ")}`.toLowerCase();
@@ -101,7 +121,10 @@ export function Hierarchy({ projectId }: { projectId: string }) {
             tasks: sourceT,
           }),
         ) &&
-        (filters.owner === "all" || names.includes(filters.owner)) &&
+        (filters.initiativeOwner === "all" ||
+          names.includes(filters.initiativeOwner)) &&
+        ((filters.versionOwner === "all" && filters.taskOwner === "all") ||
+          matchingVersions.length > 0) &&
         (!filters.start || i.startDate === filters.start) &&
         (!filters.deadline || i.deadline === filters.deadline) &&
         (filters.status === "all" || i.status === filters.status) &&
@@ -274,12 +297,32 @@ export function Hierarchy({ projectId }: { projectId: string }) {
             <option value="100">100%</option>
           </select>
           <select
-            aria-label="Filtrar responsable"
-            value={filters.owner}
-            onChange={(e) => setFilter("owner", e.target.value)}
+            aria-label="Filtrar responsable de iniciativa"
+            value={filters.initiativeOwner}
+            onChange={(e) => setFilter("initiativeOwner", e.target.value)}
           >
-            <option value="all">Responsable</option>
-            {ownerOptions.map((name) => (
+            <option value="all">Responsable de iniciativa</option>
+            {initiativeOwnerOptions.map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Filtrar responsable de versión"
+            value={filters.versionOwner}
+            onChange={(e) => setFilter("versionOwner", e.target.value)}
+          >
+            <option value="all">Responsable de versión</option>
+            {versionOwnerOptions.map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Filtrar responsable de tarea"
+            value={filters.taskOwner}
+            onChange={(e) => setFilter("taskOwner", e.target.value)}
+          >
+            <option value="all">Responsable de tarea</option>
+            {taskOwnerOptions.map((name) => (
               <option key={name}>{name}</option>
             ))}
           </select>
@@ -383,10 +426,9 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       <span className="impact">{i.impact}</span>
                     </div>
                   )}
-                  {openI.has(i.id) && (
+                  {(openI.has(i.id) || filters.versionOwner !== "all" || filters.taskOwner !== "all") && (
                     <div className="versions">
-                      {sourceV
-                        .filter((v) => v.initiativeId === i.id)
+                      {visibleVersions(i.id)
                         .map((v) => (
                           <div key={v.id}>
                             {editing ? (
@@ -437,7 +479,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                 <span className="muted-cell">Heredado</span>
                               </div>
                             )}
-                            {openV.has(v.id) && (
+                            {(openV.has(v.id) || filters.taskOwner !== "all") && (
                               <div className="subtasks-block task-master">
                                 <div className="subtask-head">
                                   <span />
@@ -446,8 +488,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                   <span>Responsable</span>
                                   <span>{editing ? "Estado" : "Avance"}</span>
                                 </div>
-                                {sourceT
-                                  .filter((t) => t.versionId === v.id)
+                                {visibleTasks(v.id)
                                   .map((t) =>
                                     editing ? (
                                       <TaskEditRow

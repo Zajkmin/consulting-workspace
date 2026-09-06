@@ -38,3 +38,36 @@
     width: 100%;
   }
 }
+
+.task-picker-row.picker-priority-high {
+  background: #fff1f1;
+}
+
+.task-picker-row.picker-priority-medium {
+  background: #fff6e8;
+}
+
+.task-picker-row.picker-priority-low {
+  background: #eef8f1;
+}
+
+.task-picker-row.picker-priority-high:hover {
+  background: #ffeaea;
+}
+
+.task-picker-row.picker-priority-medium:hover {
+  background: #fff0d8;
+}
+
+.task-picker-row.picker-priority-low:hover {
+  background: #e5f4e9;
+}
+
+.task-picker-row > em {
+  border-radius: 999px;
+  background: rgb(255 255 255 / 65%);
+  padding: 4px 7px;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 650;
+}
