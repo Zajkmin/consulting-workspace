@@ -21,7 +21,7 @@ export interface AssembledWorkspace {
   relationErrors: Record<string, string[]>;
 }
 
-export function assembleWorkspace(source: MappedWorkspaceLists): AssembledWorkspace {
+export function assembleWorkspace(source: MappedWorkspaceLists,currentUserId?:string): AssembledWorkspace {
   const relationErrors: Record<string, string[]> = {};
   const issue = (list:string,message:string) => (relationErrors[list]??=[]).push(message);
   const usersById = new Map(source.users.map(user=>[user.id,user]));
@@ -46,8 +46,13 @@ export function assembleWorkspace(source: MappedWorkspaceLists): AssembledWorksp
   source.taskDependencies.forEach(dep=>{if(!source.tasks.some(task=>task.id===dep.taskId)||!source.tasks.some(task=>task.id===dep.dependsOnTaskId))issue("CW_TaskDependencies","Una dependencia referencia una tarea inexistente.")});
   source.scheduleBlocks.forEach(block=>{if(!usersById.has(block.userId))issue("CW_ScheduleBlocks","Un bloque referencia un usuario inexistente.");if(!source.tasks.some(task=>task.id===block.taskId))issue("CW_ScheduleBlocks","Un bloque referencia una tarea inexistente.")});
 
-  const currentUser=users.find(user=>user.active&&user.role==="admin")??users.find(user=>user.active)??users[0];
+  const currentUser=(currentUserId?users.find(user=>user.id===currentUserId&&user.active):undefined)??users.find(user=>user.active&&user.role==="admin")??users.find(user=>user.active)??users[0];
   if(!currentUser)return{data:null,relationErrors};
   const preferences=source.workPreferences.find(item=>item.userId===currentUser.id)??{dayStart:"08:30",dayEnd:"17:30",workingDays:[1,2,3,4,5],focusBlockMinutes:90};
-  return{data:{user:currentUser,users,clients:source.clients,projects,initiatives,versions,tasks,schedule:source.scheduleBlocks.filter(block=>block.userId===currentUser.id).map(block=>({id:block.id,taskId:block.taskId,date:block.date,startTime:block.startTime,endTime:block.endTime,source:block.source,completed:block.completed,completedAt:block.completedAt,outcome:block.outcome})),workPreferences:{dayStart:preferences.dayStart,dayEnd:preferences.dayEnd,workingDays:preferences.workingDays,focusBlockMinutes:preferences.focusBlockMinutes}},relationErrors};
+  const allowed=currentUser.role==="admin"?new Set(projects.map(project=>project.id)):new Set(currentUser.assignedProjectIds);
+  const visibleProjects=projects.filter(project=>allowed.has(project.id));
+  const visibleInitiatives=initiatives.filter(item=>allowed.has(item.projectId));
+  const visibleVersions=versions.filter(item=>visibleInitiatives.some(initiative=>initiative.id===item.initiativeId));
+  const visibleTasks=tasks.filter(item=>allowed.has(item.projectId));
+  return{data:{user:currentUser,users,clients:source.clients,projects:visibleProjects,initiatives:visibleInitiatives,versions:visibleVersions,tasks:visibleTasks,schedule:source.scheduleBlocks.filter(block=>block.userId===currentUser.id&&visibleTasks.some(task=>task.id===block.taskId)).map(block=>({id:block.id,taskId:block.taskId,date:block.date,startTime:block.startTime,endTime:block.endTime,source:block.source,completed:block.completed,completedAt:block.completedAt,outcome:block.outcome})),workPreferences:{dayStart:preferences.dayStart,dayEnd:preferences.dayEnd,workingDays:preferences.workingDays,focusBlockMinutes:preferences.focusBlockMinutes}},relationErrors};
 }

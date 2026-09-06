@@ -5,10 +5,10 @@ import { listMappers, type MappingResult } from "./mappers.ts";
 
 export interface ListReadSummary { list:string; status:"ok"|"error"; itemsRead:number; entitiesMapped:number; validationErrors:string[] }
 
-export async function readSharePointWorkspace(repositories = new SharePointReadRepositories()) {
+export async function readSharePointWorkspace(repositories = new SharePointReadRepositories(),currentUserId?:string) {
   const summaries:ListReadSummary[]=[];
   const mapped:Partial<MappedWorkspaceLists>={};
-  for(const repository of repositories.all()){
+  await Promise.all(repositories.all().map(async repository=>{
     const key=repository.key;
     try{
       const items=await repository.readItems();
@@ -18,10 +18,10 @@ export async function readSharePointWorkspace(repositories = new SharePointReadR
     }catch(error){
       summaries.push({list:repository.definition.name,status:"error",itemsRead:0,entitiesMapped:0,validationErrors:[error instanceof Error?error.message:"Error de lectura sanitizado."]});
     }
-  }
+  }));
   const complete=mapped as MappedWorkspaceLists;
   const allPresent=repositories.all().every(repository=>Array.isArray((mapped as Record<string,unknown>)[repository.key]));
-  const assembled=allPresent?assembleWorkspace(complete):{data:null,relationErrors:{}};
+  const assembled=allPresent?assembleWorkspace(complete,currentUserId):{data:null,relationErrors:{}};
   for(const [list,errors] of Object.entries(assembled.relationErrors)){
     const summary=summaries.find(item=>item.list===list);if(summary){summary.validationErrors.push(...errors);summary.status="error"}
   }

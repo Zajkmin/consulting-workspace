@@ -57,7 +57,7 @@ Cada fila tiene: `Visible | Interno | Tipo | O | U | I | TypeScript/regla`.
 | Estado | `Status` | Choice | Sí | No | Sí | estados comunes¹ |
 | ID de responsable | `OwnerUserId` | Text | Sí | No | Sí | `owner`, nombre derivado |
 | Inicio | `StartDate` | Date | Sí | No | No | `startDate` |
-| Fecha límite | `Deadline` | Date | Sí | No | Sí | `deadline` |
+| Fecha límite | `Deadline` | Date | No | No | Sí | `deadline`; vacío significa sin definir |
 | Impacto | `Impact` | Choice | Sí | No | Sí | `Alto`, `Medio`, `Bajo` |
 
 ### `CW_Versions`
