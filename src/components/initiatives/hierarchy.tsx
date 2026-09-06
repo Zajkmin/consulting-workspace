@@ -31,6 +31,14 @@ const statuses: TaskStatus[] = [
     status: "all",
     impact: "all",
   };
+const versionPriority = (tasks: Task[]) =>
+  tasks.some((task) => task.priority === "Alta")
+    ? "high"
+    : tasks.some((task) => task.priority === "Media")
+      ? "medium"
+      : tasks.some((task) => task.priority === "Baja")
+        ? "low"
+        : "none";
 export function Hierarchy({ projectId }: { projectId: string }) {
   const {
       data,
@@ -386,7 +394,10 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       {sourceV
                         .filter((v) => v.initiativeId === i.id)
                         .map((v) => (
-                          <div key={v.id}>
+                          <div
+                            key={v.id}
+                            className={`version-priority-${versionPriority(sourceT.filter((task) => task.versionId === v.id))}`}
+                          >
                             {editing ? (
                               <VersionEditRow
                                 item={v}

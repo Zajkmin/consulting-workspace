@@ -5,6 +5,7 @@ import "./auth.css";
 import "./edit.css";
 import "./management.css";
 import "./agenda.css";
+import "./agenda-navigation.css";
 import { AppProvider } from "@/hooks/use-app";
 import { AppShell } from "@/components/layout/app-shell";
 import { auth } from "../../auth";

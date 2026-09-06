@@ -1,0 +1,40 @@
+.week-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.week-navigation strong {
+  margin-right: auto;
+  color: #696a6e;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.week-navigation button {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  padding: 6px 8px;
+  color: #666;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.week-navigation button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 650px) {
+  .week-navigation {
+    flex-wrap: wrap;
+  }
+
+  .week-navigation strong {
+    width: 100%;
+  }
+}
