@@ -1,11 +1,389 @@
 "use client";
 /* eslint-disable react-hooks/purity */
-import{useState}from"react";import{useApp}from"@/hooks/use-app";import type{Priority,TaskStatus}from"@/types";
-type DraftTask={id:string;title:string;description:string;priority:Priority;assignedTo:string};const tip=(text:string)=>({title:text});
-export function InitiativeForm({onDone,defaultProjectId}:{onDone:()=>void;defaultProjectId?:string}){
- const{data,allData,addInitiativeBundle}=useApp(),today=new Date().toISOString().slice(0,10),defaultEnd=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
- const[name,setName]=useState(""),[description,setDescription]=useState(""),[projectId,setProjectId]=useState(defaultProjectId??data.projects[0]?.id??""),project=data.projects.find(p=>p.id===projectId),[area,setArea]=useState(project?.areas?.[0]??project?.area??""),[impact,setImpact]=useState<"Alto"|"Medio"|"Bajo">("Medio"),[responsible,setResponsible]=useState<string[]>([data.user.name]),[status,setStatus]=useState<TaskStatus>("Pendiente"),[startDate,setStartDate]=useState(today),[deadline,setDeadline]=useState(""),[firstVersion,setFirstVersion]=useState(true),[versionName,setVersionName]=useState("Primera entrega"),[versionCode,setVersionCode]=useState("V1"),[versionOwner,setVersionOwner]=useState(data.user.name),[versionDeadline,setVersionDeadline]=useState(defaultEnd),[tasks,setTasks]=useState<DraftTask[]>([]),[error,setError]=useState(""),[saving,setSaving]=useState(false);
- const owners=allData.users.filter(u=>u.active&&(u.role==="admin"||u.assignedProjectIds.includes(projectId))),toggleOwner=(value:string)=>setResponsible(current=>current.includes(value)?current.filter(name=>name!==value):[...current,value]),addDraft=()=>setTasks(current=>[...current,{id:crypto.randomUUID(),title:"",description:"",priority:"Media",assignedTo:versionOwner}]),updateTask=(id:string,patch:Partial<DraftTask>)=>setTasks(current=>current.map(task=>task.id===id?{...task,...patch}:task));
- const submit=async()=>{if(!responsible.length)return setError("Seleccioná al menos un responsable para la iniciativa.");if(deadline&&deadline<startDate)return setError("La fecha fin de la iniciativa no puede ser anterior al inicio.");if(firstVersion&&!versionDeadline)return setError("Definí la fecha fin de la primera versión.");if(firstVersion&&versionDeadline<startDate)return setError("La fecha fin de la versión no puede ser anterior al inicio.");if(!projectId||!area)return setError("Seleccioná un proyecto y un área.");setSaving(true);const initiativeId=crypto.randomUUID(),versionId=crypto.randomUUID(),primary=responsible[0];await addInitiativeBundle({initiative:{id:initiativeId,projectId,name:name.trim(),description:description.trim(),area,status,owner:primary,owners:responsible,startDate,deadline,impact,versionIds:[]},version:firstVersion?{id:versionId,initiativeId,code:versionCode.trim(),name:versionName.trim(),status:"Pendiente",owner:versionOwner,startDate,deadline:versionDeadline,taskIds:[]}:undefined,tasks:firstVersion?tasks.filter(task=>task.title.trim()).map(task=>({id:task.id,projectId,initiativeId,versionId,title:task.title.trim(),description:task.description.trim(),priority:task.priority,status:"Pendiente",deadline:versionDeadline,estimatedMinutes:0,splittable:true,progress:0,assignedTo:task.assignedTo,dependencies:[],subtasks:[]})):[]});setSaving(false);onDone()};
- return <form onSubmit={e=>{e.preventDefault();void submit()}}><div className="form-grid"><label className="full" {...tip("El resultado principal que querés conseguir dentro del proyecto.")}>Nombre de la iniciativa<input autoFocus required value={name} onChange={e=>setName(e.target.value)} placeholder="Ej. Estandarizar el seguimiento comercial"/></label><label className="full" {...tip("Explicá brevemente qué se busca conseguir.")}>Objetivo<textarea className="auto-grow" rows={1} value={description} onChange={e=>setDescription(e.target.value)} placeholder="¿Qué se quiere conseguir?" required/></label><label>Proyecto<select value={projectId} disabled={!!defaultProjectId} onChange={e=>{setProjectId(e.target.value);const p=data.projects.find(x=>x.id===e.target.value);setArea(p?.areas?.[0]??p?.area??"")}}>{data.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>Área<select value={area} onChange={e=>setArea(e.target.value)}>{(project?.areas?.length?project.areas:[project?.area]).filter(Boolean).map(a=><option key={a}>{a}</option>)}</select></label><fieldset className="full responsible-picker"><legend>Responsables de la iniciativa</legend><p>Podés elegir varias personas. Cada versión tendrá además su propio responsable.</p><div>{owners.map(user=><label key={user.id}><input type="checkbox" checked={responsible.includes(user.name)} onChange={()=>toggleOwner(user.name)}/><span>{user.initials} · {user.name}</span></label>)}</div></fieldset><label>Estado inicial<select value={status} onChange={e=>setStatus(e.target.value as TaskStatus)}><option>Pendiente</option><option>En curso</option><option>En revisión</option></select></label><label>Impacto<select value={impact} onChange={e=>setImpact(e.target.value as typeof impact)}><option>Medio</option><option>Alto</option><option>Bajo</option></select></label><label>Fecha de inicio<input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label><label {...tip("Opcional; podés dejarla sin definir.")}>Fecha fin de la iniciativa (opcional)<input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></label><label className="checkbox-label first-version"><input type="checkbox" checked={firstVersion} onChange={e=>setFirstVersion(e.target.checked)}/> Subdividir en una primera versión</label>{firstVersion&&<><p className="form-hint full">Las versiones agrupan tareas concretas y permiten calcular un avance real.</p><label>Código<input required value={versionCode} onChange={e=>setVersionCode(e.target.value)}/></label><label>Primera versión<input required value={versionName} onChange={e=>setVersionName(e.target.value)}/></label><label>Responsable de la versión<select value={versionOwner} onChange={e=>setVersionOwner(e.target.value)}>{owners.map(u=><option key={u.id}>{u.name}</option>)}</select></label><label>Fecha fin de la versión<input required type="date" value={versionDeadline} onChange={e=>setVersionDeadline(e.target.value)}/></label><div className="full initiative-task-builder"><div><b>Tareas de esta versión</b><button type="button" className="link-button" onClick={addDraft}>+ Agregar tarea</button></div>{tasks.map((task,index)=><div className="initiative-task-draft" key={task.id}><input aria-label={`Tarea ${index+1}`} required value={task.title} onChange={e=>updateTask(task.id,{title:e.target.value})} placeholder={`Tarea ${index+1}`}/><select aria-label="Responsable" value={task.assignedTo} onChange={e=>updateTask(task.id,{assignedTo:e.target.value})}>{owners.map(u=><option key={u.id}>{u.name}</option>)}</select><button type="button" aria-label="Quitar tarea" onClick={()=>setTasks(current=>current.filter(item=>item.id!==task.id))}>×</button></div>)}</div></>}</div>{error&&<p className="form-error initiative-error">{error}</p>}<div className="modal-actions"><button type="button" className="button quiet" onClick={onDone}>Cancelar</button><button className="button primary" disabled={saving}>{saving?"Guardando…":"Crear iniciativa"}</button></div></form>
+import { useState } from "react";
+import { useApp } from "@/hooks/use-app";
+import type { Priority, TaskStatus } from "@/types";
+type DraftTask = {
+  id: string;
+  title: string;
+  description: string;
+  priority: Priority;
+  assignedTo: string;
+};
+const tip = (text: string) => ({ title: text });
+export function InitiativeForm({
+  onDone,
+  defaultProjectId,
+}: {
+  onDone: () => void;
+  defaultProjectId?: string;
+}) {
+  const { data, allData, addInitiativeBundle } = useApp(),
+    today = new Date().toISOString().slice(0, 10),
+    defaultEnd = new Date(Date.now() + 14 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+  const [name, setName] = useState(""),
+    [description, setDescription] = useState(""),
+    [projectId, setProjectId] = useState(
+      defaultProjectId ?? data.projects[0]?.id ?? "",
+    ),
+    project = data.projects.find((p) => p.id === projectId),
+    [area, setArea] = useState(project?.areas?.[0] ?? project?.area ?? ""),
+    [impact, setImpact] = useState<"Alto" | "Medio" | "Bajo">("Medio"),
+    [responsible, setResponsible] = useState<string[]>([data.user.name]),
+    [status, setStatus] = useState<TaskStatus>("Pendiente"),
+    [startDate, setStartDate] = useState(today),
+    [deadline, setDeadline] = useState(""),
+    [firstVersion, setFirstVersion] = useState(true),
+    [versionName, setVersionName] = useState("Primera entrega"),
+    [versionCode, setVersionCode] = useState("V1"),
+    [versionOwner, setVersionOwner] = useState(data.user.name),
+    [versionStartDate, setVersionStartDate] = useState(today),
+    [versionDeadline, setVersionDeadline] = useState(defaultEnd),
+    [tasks, setTasks] = useState<DraftTask[]>([]),
+    [error, setError] = useState(""),
+    [saving, setSaving] = useState(false);
+  const owners = allData.users.filter(
+      (u) =>
+        u.active &&
+        (u.role === "admin" || u.assignedProjectIds.includes(projectId)),
+    ),
+    toggleOwner = (value: string) =>
+      setResponsible((current) =>
+        current.includes(value)
+          ? current.filter((name) => name !== value)
+          : [...current, value],
+      ),
+    addDraft = () =>
+      setTasks((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          title: "",
+          description: "",
+          priority: "Media",
+          assignedTo: versionOwner,
+        },
+      ]),
+    updateTask = (id: string, patch: Partial<DraftTask>) =>
+      setTasks((current) =>
+        current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
+      );
+  const submit = async () => {
+    if (!responsible.length)
+      return setError("Seleccioná al menos un responsable para la iniciativa.");
+    if (deadline && deadline < startDate)
+      return setError(
+        "La fecha fin de la iniciativa no puede ser anterior al inicio.",
+      );
+    if (firstVersion && !versionDeadline)
+      return setError("Definí la fecha fin de la primera versión.");
+    if (firstVersion && versionDeadline < versionStartDate)
+      return setError(
+        "La fecha fin de la versión no puede ser anterior a su fecha de inicio.",
+      );
+    if (!projectId || !area)
+      return setError("Seleccioná un proyecto y un área.");
+    setSaving(true);
+    const initiativeId = crypto.randomUUID(),
+      versionId = crypto.randomUUID(),
+      primary = responsible[0];
+    await addInitiativeBundle({
+      initiative: {
+        id: initiativeId,
+        projectId,
+        name: name.trim(),
+        description: description.trim(),
+        area,
+        status,
+        owner: primary,
+        owners: responsible,
+        startDate,
+        deadline,
+        impact,
+        versionIds: [],
+      },
+      version: firstVersion
+        ? {
+            id: versionId,
+            initiativeId,
+            code: versionCode.trim(),
+            name: versionName.trim(),
+            status: "Pendiente",
+            owner: versionOwner,
+            startDate: versionStartDate,
+            deadline: versionDeadline,
+            taskIds: [],
+          }
+        : undefined,
+      tasks: firstVersion
+        ? tasks
+            .filter((task) => task.title.trim())
+            .map((task) => ({
+              id: task.id,
+              projectId,
+              initiativeId,
+              versionId,
+              title: task.title.trim(),
+              description: task.description.trim(),
+              priority: task.priority,
+              status: "Pendiente",
+              deadline: versionDeadline,
+              estimatedMinutes: 0,
+              splittable: true,
+              progress: 0,
+              assignedTo: task.assignedTo,
+              dependencies: [],
+              subtasks: [],
+            }))
+        : [],
+    });
+    setSaving(false);
+    onDone();
+  };
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+    >
+      <div className="form-grid">
+        <label
+          className="full"
+          {...tip(
+            "El resultado principal que querés conseguir dentro del proyecto.",
+          )}
+        >
+          Nombre de la iniciativa
+          <input
+            autoFocus
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Estandarizar el seguimiento comercial"
+          />
+        </label>
+        <label
+          className="full"
+          {...tip("Explicá brevemente qué se busca conseguir.")}
+        >
+          Objetivo
+          <textarea
+            className="auto-grow"
+            rows={1}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="¿Qué se quiere conseguir?"
+            required
+          />
+        </label>
+        <label>
+          Proyecto
+          <select
+            value={projectId}
+            disabled={!!defaultProjectId}
+            onChange={(e) => {
+              setProjectId(e.target.value);
+              const p = data.projects.find((x) => x.id === e.target.value);
+              setArea(p?.areas?.[0] ?? p?.area ?? "");
+            }}
+          >
+            {data.projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Área
+          <select value={area} onChange={(e) => setArea(e.target.value)}>
+            {(project?.areas?.length ? project.areas : [project?.area])
+              .filter(Boolean)
+              .map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+          </select>
+        </label>
+        <fieldset className="full responsible-picker">
+          <legend>Responsables de la iniciativa</legend>
+          <p>
+            Podés elegir varias personas. Cada versión tendrá además su propio
+            responsable.
+          </p>
+          <div>
+            {owners.map((user) => (
+              <label key={user.id}>
+                <input
+                  type="checkbox"
+                  checked={responsible.includes(user.name)}
+                  onChange={() => toggleOwner(user.name)}
+                />
+                <span>
+                  {user.initials} · {user.name}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <label>
+          Estado inicial
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as TaskStatus)}
+          >
+            <option>Pendiente</option>
+            <option>En curso</option>
+            <option>En revisión</option>
+          </select>
+        </label>
+        <label>
+          Impacto
+          <select
+            value={impact}
+            onChange={(e) => setImpact(e.target.value as typeof impact)}
+          >
+            <option>Medio</option>
+            <option>Alto</option>
+            <option>Bajo</option>
+          </select>
+        </label>
+        <label>
+          Fecha de inicio
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </label>
+        <label {...tip("Opcional; podés dejarla sin definir.")}>
+          Fecha fin de la iniciativa (opcional)
+          <input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+          />
+        </label>
+        <label className="checkbox-label first-version">
+          <input
+            type="checkbox"
+            checked={firstVersion}
+            onChange={(e) => setFirstVersion(e.target.checked)}
+          />{" "}
+          Subdividir en una primera versión
+        </label>
+        {firstVersion && (
+          <>
+            <p className="form-hint full">
+              Las versiones agrupan tareas concretas y permiten calcular un
+              avance real.
+            </p>
+            <label>
+              Código
+              <input
+                required
+                value={versionCode}
+                onChange={(e) => setVersionCode(e.target.value)}
+              />
+            </label>
+            <label>
+              Primera versión
+              <input
+                required
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+              />
+            </label>
+            <label>
+              Responsable de la versión
+              <select
+                value={versionOwner}
+                onChange={(e) => setVersionOwner(e.target.value)}
+              >
+                {owners.map((u) => (
+                  <option key={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Fecha de inicio de la versión
+              <input
+                required
+                type="date"
+                value={versionStartDate}
+                onChange={(e) => setVersionStartDate(e.target.value)}
+              />
+            </label>
+            <label>
+              Fecha fin de la versión
+              <input
+                required
+                type="date"
+                value={versionDeadline}
+                onChange={(e) => setVersionDeadline(e.target.value)}
+              />
+            </label>
+            <div className="full initiative-task-builder">
+              <div>
+                <b>Tareas de esta versión</b>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={addDraft}
+                >
+                  + Agregar tarea
+                </button>
+              </div>
+              {tasks.map((task, index) => (
+                <div className="initiative-task-draft" key={task.id}>
+                  <input
+                    aria-label={`Tarea ${index + 1}`}
+                    required
+                    value={task.title}
+                    onChange={(e) =>
+                      updateTask(task.id, { title: e.target.value })
+                    }
+                    placeholder={`Tarea ${index + 1}`}
+                  />
+                  <select
+                    aria-label="Responsable"
+                    value={task.assignedTo}
+                    onChange={(e) =>
+                      updateTask(task.id, { assignedTo: e.target.value })
+                    }
+                  >
+                    {owners.map((u) => (
+                      <option key={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    aria-label="Quitar tarea"
+                    onClick={() =>
+                      setTasks((current) =>
+                        current.filter((item) => item.id !== task.id),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {error && <p className="form-error initiative-error">{error}</p>}
+      <div className="modal-actions">
+        <button type="button" className="button quiet" onClick={onDone}>
+          Cancelar
+        </button>
+        <button className="button primary" disabled={saving}>
+          {saving ? "Guardando…" : "Crear iniciativa"}
+        </button>
+      </div>
+    </form>
+  );
 }
