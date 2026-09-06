@@ -1,4 +1,143 @@
 "use client";
-import{useEffect,useState}from"react";import{useRouter}from"next/navigation";import{useApp}from"@/hooks/use-app";import{Modal}from"@/components/ui/modal";import{UserForm}from"./user-form";import type{User}from"@/types";
-const roleLabel=(role:User["role"])=>role==="admin"?"Administrador":role==="gestor"?"Gestor de proyecto":"Usuario";
-export function UsersPanel(){const{allData,currentUser}=useApp(),router=useRouter(),[editing,setEditing]=useState<User|"new"|null>(null),[query,setQuery]=useState(""),allowed=currentUser?.role==="admin";useEffect(()=>{if(!allowed)router.replace("/")},[allowed,router]);if(!allowed)return null;const users=allData.users.filter(u=>`${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase()));return <><div className="users-toolbar"><div><p className="eyebrow">Administración</p><h1>Usuarios y accesos</h1><p className="subtle">Asigná un rol y definí a qué proyectos puede acceder cada persona.</p></div><button className="button primary" onClick={()=>setEditing("new")}>+ Nuevo usuario</button></div><div className="users-summary"><span><b>{allData.users.filter(u=>u.active).length}</b> usuarios activos</span><span><b>{allData.users.filter(u=>u.role==="gestor").length}</b> gestores</span><span><b>{allData.projects.length}</b> proyectos disponibles</span></div><div className="users-list-head"><div><h2>Equipo</h2><p>Los administradores tienen acceso total.</p></div><input className="search user-search" placeholder="Buscar usuario…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="users-table"><div className="users-row users-head"><span>Usuario</span><span>Rol</span><span>Acceso a proyectos</span><span>Estado</span><span/></div>{users.length?users.map(u=><button className="users-row" key={u.id} onClick={()=>setEditing(u)}><span className="user-cell"><i>{u.initials}</i><span><b>{u.name}</b><small>{u.email}</small></span></span><span><span className={`role-pill ${u.role}`}>{roleLabel(u.role)}</span></span><span className="assignment-cell">{u.role==="admin"?<em>Acceso total</em>:u.assignedProjectIds.length?u.assignedProjectIds.map(id=><small key={id} className={u.editableProjectIds?.includes(id)?"can-edit":""}>{allData.projects.find(p=>p.id===id)?.name} · {u.editableProjectIds?.includes(id)?"modifica":"lee"}</small>):<em>Sin proyectos</em>}</span><span><i className={u.active?"status-dot active":"status-dot"}/>{u.active?"Activo":"Inactivo"}</span><span className="edit-link">Editar</span></button>):<div className="empty"><b>No encontramos usuarios</b><span>Probá con otro nombre o correo.</span></div>}</div><Modal open={editing!==null} onClose={()=>setEditing(null)} title={editing==="new"?"Nuevo usuario":"Editar usuario"}>{editing&&<UserForm user={editing==="new"?undefined:editing} onDone={()=>setEditing(null)}/>}</Modal></>}
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useApp } from "@/hooks/use-app";
+import { Modal } from "@/components/ui/modal";
+import { UserForm } from "./user-form";
+import type { User } from "@/types";
+const roleLabel = (role: User["role"]) =>
+  role === "admin"
+    ? "Administrador"
+    : role === "gestor"
+      ? "Gestor de proyecto"
+      : "Usuario";
+const byName = (left: User, right: User) =>
+  left.name.localeCompare(right.name, "es", { sensitivity: "base" });
+export function UsersPanel() {
+  const { allData, currentUser } = useApp(),
+    router = useRouter(),
+    [editing, setEditing] = useState<User | "new" | null>(null),
+    [query, setQuery] = useState(""),
+    allowed = currentUser?.role === "admin";
+  useEffect(() => {
+    if (!allowed) router.replace("/");
+  }, [allowed, router]);
+  if (!allowed) return null;
+  const users = allData.users
+    .filter((u) =>
+      `${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase()),
+    )
+    .sort(byName);
+  return (
+    <>
+      <div className="users-toolbar">
+        <div>
+          <p className="eyebrow">Administración</p>
+          <h1>Usuarios y accesos</h1>
+          <p className="subtle">
+            Asigná un rol y definí a qué proyectos puede acceder cada persona.
+          </p>
+        </div>
+        <button className="button primary" onClick={() => setEditing("new")}>
+          + Nuevo usuario
+        </button>
+      </div>
+      <div className="users-summary">
+        <span>
+          <b>{allData.users.filter((u) => u.active).length}</b> usuarios activos
+        </span>
+        <span>
+          <b>{allData.users.filter((u) => u.role === "gestor").length}</b>{" "}
+          gestores
+        </span>
+        <span>
+          <b>{allData.projects.length}</b> proyectos disponibles
+        </span>
+      </div>
+      <div className="users-list-head">
+        <div>
+          <h2>Equipo</h2>
+          <p>Los administradores tienen acceso total.</p>
+        </div>
+        <input
+          className="search user-search"
+          placeholder="Buscar usuario…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+      <div className="users-table">
+        <div className="users-row users-head">
+          <span>Usuario</span>
+          <span>Rol</span>
+          <span>Acceso a proyectos</span>
+          <span>Estado</span>
+          <span />
+        </div>
+        {users.length ? (
+          users.map((u) => (
+            <button
+              className="users-row"
+              key={u.id}
+              onClick={() => setEditing(u)}
+            >
+              <span className="user-cell">
+                <i>{u.initials}</i>
+                <span>
+                  <b>{u.name}</b>
+                  <small>{u.email}</small>
+                </span>
+              </span>
+              <span>
+                <span className={`role-pill ${u.role}`}>
+                  {roleLabel(u.role)}
+                </span>
+              </span>
+              <span className="assignment-cell">
+                {u.role === "admin" ? (
+                  <em>Acceso total</em>
+                ) : u.assignedProjectIds.length ? (
+                  u.assignedProjectIds.map((id) => (
+                    <small
+                      key={id}
+                      className={
+                        u.editableProjectIds?.includes(id) ? "can-edit" : ""
+                      }
+                    >
+                      {allData.projects.find((p) => p.id === id)?.name} ·{" "}
+                      {u.editableProjectIds?.includes(id) ? "modifica" : "lee"}
+                    </small>
+                  ))
+                ) : (
+                  <em>Sin proyectos</em>
+                )}
+              </span>
+              <span>
+                <i className={u.active ? "status-dot active" : "status-dot"} />
+                {u.active ? "Activo" : "Inactivo"}
+              </span>
+              <span className="edit-link">Editar</span>
+            </button>
+          ))
+        ) : (
+          <div className="empty">
+            <b>No encontramos usuarios</b>
+            <span>Probá con otro nombre o correo.</span>
+          </div>
+        )}
+      </div>
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === "new" ? "Nuevo usuario" : "Editar usuario"}
+      >
+        {editing && (
+          <UserForm
+            user={editing === "new" ? undefined : editing}
+            onDone={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+    </>
+  );
+}
