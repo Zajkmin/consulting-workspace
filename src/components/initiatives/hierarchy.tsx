@@ -31,14 +31,8 @@ const statuses: TaskStatus[] = [
     status: "all",
     impact: "all",
   };
-const versionPriority = (tasks: Task[]) =>
-  tasks.some((task) => task.priority === "Alta")
-    ? "high"
-    : tasks.some((task) => task.priority === "Media")
-      ? "medium"
-      : tasks.some((task) => task.priority === "Baja")
-        ? "low"
-        : "none";
+const taskPriorityClass = (priority: Task["priority"]) =>
+  priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
 export function Hierarchy({ projectId }: { projectId: string }) {
   const {
       data,
@@ -372,7 +366,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       }}
                     />
                   ) : (
-                    <div className="entity-row">
+                    <div className={`entity-row${initiativeProgress(i, data) === 100 ? " completed-entity" : ""}`}>
                       <EntityName
                         open={openI.has(i.id)}
                         onToggle={() => toggle(openI, i.id, setOpenI)}
@@ -394,10 +388,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       {sourceV
                         .filter((v) => v.initiativeId === i.id)
                         .map((v) => (
-                          <div
-                            key={v.id}
-                            className={`version-priority-${versionPriority(sourceT.filter((task) => task.versionId === v.id))}`}
-                          >
+                          <div key={v.id}>
                             {editing ? (
                               <VersionEditRow
                                 item={v}
@@ -418,7 +409,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                 }}
                               />
                             ) : (
-                              <div className="entity-row version-row">
+                              <div className={`entity-row version-row${versionProgress(v.id, data) === 100 ? " completed-entity" : ""}`}>
                                 <div className="entity-name indent">
                                   <button
                                     className={
@@ -482,8 +473,8 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                       <div
                                         className={
                                           t.status === "Completada"
-                                            ? "subtask-row done"
-                                            : "subtask-row"
+                                            ? "subtask-row done completed-entity"
+                                            : `subtask-row task-priority-${taskPriorityClass(t.priority)}`
                                         }
                                         key={t.id}
                                       >
@@ -674,7 +665,7 @@ function InitiativeEditRow({
 }) {
   const selected = item.owners?.length ? item.owners : [item.owner];
   return (
-    <div className="entity-row inline-edit-row">
+    <div className={`entity-row inline-edit-row${initiativeProgress(item, data) === 100 ? " completed-entity" : ""}`}>
       <div className="editable-tree-cell">
         <button className={open ? "chev open" : "chev"} onClick={onToggle}>
           ›
@@ -755,7 +746,7 @@ function VersionEditRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="entity-row version-row inline-edit-row">
+    <div className={`entity-row version-row inline-edit-row${versionProgress(item.id, data) === 100 ? " completed-entity" : ""}`}>
       <div className="editable-tree-cell indent">
         <button className={open ? "chev open" : "chev"} onClick={onToggle}>
           ›
@@ -819,7 +810,7 @@ function TaskEditRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="subtask-row task-edit-row">
+    <div className={`subtask-row task-edit-row${item.status === "Completada" ? " completed-entity" : ` task-priority-${taskPriorityClass(item.priority)}`}`}>
       <input
         type="checkbox"
         checked={item.status === "Completada"}
