@@ -18,7 +18,7 @@ export const sharePointLists: readonly SharePointListDefinition[] = [
   { key: "taskDependencies", name: "CW_TaskDependencies", env: "SHAREPOINT_TASK_DEPENDENCIES_LIST_ID", fields: ["AppId", "TaskId", "DependsOnTaskId"] },
   { key: "scheduleBlocks", name: "CW_ScheduleBlocks", env: "SHAREPOINT_SCHEDULE_BLOCKS_LIST_ID", fields: ["AppId", "UserId", "TaskId", "PlanDate", "StartTime", "EndTime", "Source", "Outcome", "IsCompleted", "CompletedAt"] },
   { key: "workPreferences", name: "CW_WorkPreferences", env: "SHAREPOINT_WORK_PREFERENCES_LIST_ID", fields: ["AppId", "UserId", "DayStart", "DayEnd", "WorkingDays", "FocusBlockMinutes"] },
-  { key: "users", name: "CW_Users", env: "SHAREPOINT_USERS_LIST_ID", fields: ["Title", "AppId", "Email", "Initials", "Role", "ManageUsers", "ManageProjects", "ManageSchedule", "CanCreateProjects", "CanEditProjects", "CanDeleteProjects", "CanCreateInitiatives", "CanEditInitiatives", "CanDeleteInitiatives", "CanCreateVersions", "CanEditVersions", "CanDeleteVersions", "CanCreateTasks", "CanEditTasks", "CanDeleteTasks", "CanViewOthersTasks", "CanCreateUsers", "CanEditUsers", "CanDeleteUsers", "IsActive", "EntraObjectId"] },
+  { key: "users", name: "CW_Users", env: "SHAREPOINT_USERS_LIST_ID", fields: ["Title", "AppId", "Email", "Initials", "Role", "ManageUsers", "ManageProjects", "ManageSchedule", "IsActive", "EntraObjectId"] },
   { key: "projectMembers", name: "CW_ProjectMembers", env: "SHAREPOINT_PROJECT_MEMBERS_LIST_ID", fields: ["AppId", "ProjectId", "UserId", "AccessLevel"] },
 ] as const;
 

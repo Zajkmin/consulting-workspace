@@ -1,7 +1,7 @@
 export type Priority = "Alta" | "Media" | "Baja";
 export type TaskStatus = "Pendiente" | "En curso" | "En revisión" | "Completada" | "Retrasada";
-export type UserRole = "admin" | "usuario";
-export interface UserPermissions { manageUsers:boolean;manageProjects:boolean;manageSchedule:boolean;createProjects?:boolean;editProjects?:boolean;deleteProjects?:boolean;createInitiatives?:boolean;editInitiatives?:boolean;deleteInitiatives?:boolean;createVersions?:boolean;editVersions?:boolean;deleteVersions?:boolean;createTasks?:boolean;editTasks?:boolean;deleteTasks?:boolean;viewOthersTasks?:boolean;createUsers?:boolean;editUsers?:boolean;deleteUsers?:boolean }
+export type UserRole = "admin" | "gestor" | "usuario";
+export interface UserPermissions { manageUsers:boolean;manageProjects:boolean;manageSchedule:boolean }
 export interface User { id:string; name:string; email:string; initials:string; role:UserRole; assignedProjectIds:string[]; editableProjectIds?:string[]; permissions?:UserPermissions; active:boolean; entraObjectId?:string }
 export interface Client { id: string; name: string }
 export interface Project { id:string; clientId:string; name:string; color:string; area:string; areas?:string[]; active:boolean }

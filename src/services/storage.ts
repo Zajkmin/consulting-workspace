@@ -11,7 +11,7 @@ type LegacyAppData = Omit<AppData, "user" | "users"> & {
 
 const normalizeUserRole = (user: LegacyUser): User => ({
   ...user,
-  role: user.role === "consultor" ? "usuario" : user.role,
+  role: user.role === "consultor" ? "gestor" : user.role,
 });
 
 const normalizeStoredData = (data: LegacyAppData): AppData => ({

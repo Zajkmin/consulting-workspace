@@ -20,7 +20,7 @@ export class SharePointIdentityRepository {
 
   async findByEmail(email:string):Promise<AuthorizedUserRecord|null> {
     const normalized = normalizeEmail(email);
-    const select = "Title,AppId,Email,Initials,Role,ManageUsers,ManageProjects,ManageSchedule,CanCreateProjects,CanEditProjects,CanDeleteProjects,CanCreateInitiatives,CanEditInitiatives,CanDeleteInitiatives,CanCreateVersions,CanEditVersions,CanDeleteVersions,CanCreateTasks,CanEditTasks,CanDeleteTasks,CanViewOthersTasks,CanCreateUsers,CanEditUsers,CanDeleteUsers,IsActive,EntraObjectId";
+    const select = "Title,AppId,Email,Initials,Role,ManageUsers,ManageProjects,ManageSchedule,IsActive,EntraObjectId";
     const filter = encodeURIComponent(`fields/Email eq '${escapeFilter(normalized)}'`);
     const page = await this.client.get<ItemsPage>(`${this.basePath}/items?$select=id,eTag&$expand=fields($select=${select})&$filter=${filter}&$top=2`);
     const items = page.value ?? [];

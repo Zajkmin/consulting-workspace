@@ -55,7 +55,8 @@ Cada fila tiene: `Visible | Interno | Tipo | O | U | I | TypeScript/regla`.
 | Descripción | `Description` | Note | No | No | No | `description` |
 | Criterio de éxito | `SuccessCriteria` | Note | No | No | No | `successCriteria` |
 | Estado | `Status` | Choice | Sí | No | Sí | estados comunes¹ |
-| ID de responsable | `OwnerUserId` | Text | Sí | No | Sí | `owner`, nombre derivado |
+| ID de responsable principal | `OwnerUserId` | Text | Sí | No | Sí | `owner`, primer responsable derivado |
+| IDs de responsables | `OwnerUserIds` | Note | No | No | No | `owners[]`, UUID separados por coma; usa `OwnerUserId` como respaldo |
 | Inicio | `StartDate` | Date | Sí | No | No | `startDate` |
 | Fecha límite | `Deadline` | Date | No | No | Sí | `deadline`; vacío significa sin definir |
 | Impacto | `Impact` | Choice | Sí | No | Sí | `Alto`, `Medio`, `Bajo` |
@@ -154,7 +155,7 @@ La combinación `TaskId + DependsOnTaskId` es única en la aplicación.
 | Objeto Entra | `EntraObjectId` | Text | No | Sí | Sí | identidad futura |
 | Correo | `Email` | Text | Sí | Sí | Sí | `email` |
 | Iniciales | `Initials` | Text | Sí | No | No | `initials` |
-| Rol | `Role` | Choice | Sí | No | Sí | `admin`, `usuario` |
+| Rol | `Role` | Choice | Sí | No | Sí | `admin`, `gestor`, `usuario` |
 | Gestiona usuarios | `ManageUsers` | Bool | Sí | No | No | `permissions.manageUsers` |
 | Gestiona proyectos | `ManageProjects` | Bool | Sí | No | No | `permissions.manageProjects` |
 | Gestiona agenda | `ManageSchedule` | Bool | Sí | No | No | `permissions.manageSchedule` |
