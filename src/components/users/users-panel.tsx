@@ -11,7 +11,13 @@ const roleLabel = (role: User["role"]) =>
     : role === "gestor"
       ? "Gestor de proyecto"
       : "Usuario";
-const byName = (left: User, right: User) =>
+const roleOrder: Record<User["role"], number> = {
+  admin: 0,
+  gestor: 1,
+  usuario: 2,
+};
+const byRoleAndName = (left: User, right: User) =>
+  roleOrder[left.role] - roleOrder[right.role] ||
   left.name.localeCompare(right.name, "es", { sensitivity: "base" });
 export function UsersPanel() {
   const { allData, currentUser } = useApp(),
@@ -27,7 +33,7 @@ export function UsersPanel() {
     .filter((u) =>
       `${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase()),
     )
-    .sort(byName);
+    .sort(byRoleAndName);
   return (
     <>
       <div className="users-toolbar">
