@@ -2,6 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { auth } from "../../../auth";
 import type { UserPermissions, UserRole } from "../../types/index.ts";
+import type {PermissionAction} from "../../lib/permissions.ts";
 import { SharePointIdentityRepository, normalizeEmail } from "./identity-repository.ts";
 
 export type ServerPermission = "manageUsers"|"manageProjects"|"manageSchedule";
@@ -25,4 +26,5 @@ export function hasProjectAccess(principal:ServerPrincipal, projectId:string, re
   return principal.editableProjectIds.includes(projectId);
 }
 export async function requireServerPermission(permission:ServerPermission):Promise<ServerPrincipal> { const principal=await requireServerPrincipal();if(!hasServerPermission(principal,permission))throw new Error("FORBIDDEN");return principal; }
+export async function requireServerAction(action:PermissionAction):Promise<ServerPrincipal>{const principal=await requireServerPrincipal();if(principal.role!=="admin"&&!principal.permissions[action])throw new Error("FORBIDDEN");return principal}
 export async function requireProjectAccess(projectId:string,required:ProjectAccess):Promise<ServerPrincipal> { const principal=await requireServerPrincipal();if(!hasProjectAccess(principal,projectId,required))throw new Error("FORBIDDEN");return principal; }
