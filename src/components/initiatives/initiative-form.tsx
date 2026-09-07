@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/purity */
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import type { Priority, TaskStatus } from "@/types";
@@ -18,7 +19,12 @@ export function InitiativeForm({
   onDone: () => void;
   defaultProjectId?: string;
 }) {
-  const { data, allData, addInitiativeBundle } = useApp(),
+  const pathname = usePathname(),
+    contextualProjectId = pathname.startsWith("/proyectos/")
+      ? pathname.split("/")[2]
+      : undefined,
+    selectedProjectId = defaultProjectId ?? contextualProjectId,
+    { data, allData, addInitiativeBundle } = useApp(),
     today = new Date().toISOString().slice(0, 10),
     defaultEnd = new Date(Date.now() + 14 * 86400000)
       .toISOString()
@@ -26,7 +32,7 @@ export function InitiativeForm({
   const [name, setName] = useState(""),
     [description, setDescription] = useState(""),
     [projectId, setProjectId] = useState(
-      defaultProjectId ?? data.projects[0]?.id ?? "",
+      selectedProjectId ?? data.projects[0]?.id ?? "",
     ),
     project = data.projects.find((p) => p.id === projectId),
     [area, setArea] = useState(project?.areas?.[0] ?? project?.area ?? ""),
@@ -183,7 +189,7 @@ export function InitiativeForm({
           Proyecto
           <select
             value={projectId}
-            disabled={!!defaultProjectId}
+            disabled={!!selectedProjectId}
             onChange={(e) => {
               setProjectId(e.target.value);
               const p = data.projects.find((x) => x.id === e.target.value);
