@@ -236,7 +236,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
         </div>
       </section>
       <section>
-        <div className="list-title hierarchy-title">
+        <div className={`list-title hierarchy-title${editing ? " edit-toolbar-sticky" : ""}`}>
           <div>
             <h2>Iniciativas</h2>
             <p>

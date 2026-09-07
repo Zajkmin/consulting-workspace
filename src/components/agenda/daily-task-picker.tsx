@@ -21,8 +21,11 @@ export function DailyTaskPicker({
     tasks = data.tasks
       .filter((task) => {
         const project = data.projects.find((item) => item.id === task.projectId),
+          initiative = data.initiatives.find(
+            (item) => item.id === task.initiativeId,
+          ),
           text =
-            `${task.title} ${task.description} ${project?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
+            `${task.title} ${task.description} ${project?.name ?? ""} ${initiative?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
           mine =
             currentUser?.role !== "usuario" ||
             task.assignedTo === currentUser.name;
@@ -71,7 +74,7 @@ export function DailyTaskPicker({
         className="task-picker-search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Buscar por tarea, proyecto o responsable"
+        placeholder="Buscar por tarea, iniciativa, proyecto o responsable"
         autoFocus
       />
       <div className="task-picker-list">

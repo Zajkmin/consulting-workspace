@@ -14,10 +14,19 @@ export function VersionForm({
 }) {
   const { data, addVersion } = useApp(),
     existing = data.versions.filter((v) => v.initiativeId === initiativeId),
+    initiative = data.initiatives.find((item) => item.id === initiativeId),
+    people = data.users.filter(
+      (user) =>
+        user.active &&
+        (user.name === data.user.name ||
+          user.role === "admin" ||
+          (initiative && user.assignedProjectIds.includes(initiative.projectId))),
+    ),
     [name, setName] = useState(""),
     [code, setCode] = useState(`V${existing.length + 1}`),
     [startDate, setStartDate] = useState(today),
     [deadline, setDeadline] = useState(defaultEnd),
+    [owner, setOwner] = useState(data.user.name),
     [error, setError] = useState("");
   return (
     <form
@@ -33,7 +42,7 @@ export function VersionForm({
           code,
           name,
           status: "Pendiente",
-          owner: data.user.name,
+          owner,
           startDate,
           deadline,
           taskIds: [],
@@ -67,6 +76,16 @@ export function VersionForm({
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
           />
+        </label>
+        <label>
+          Responsable
+          <select value={owner} onChange={(e) => setOwner(e.target.value)}>
+            {people.map((person) => (
+              <option key={person.id} value={person.name}>
+                {person.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="full">
           Nombre de la versión
