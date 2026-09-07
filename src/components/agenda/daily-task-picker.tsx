@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
 const priorityClass = (priority: "Alta" | "Media" | "Baja") =>
   priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
+const priorityOrder = { Alta: 0, Media: 1, Baja: 2 } as const;
 export function DailyTaskPicker({
   date,
   onDone,
@@ -17,19 +18,25 @@ export function DailyTaskPicker({
       () => new Set(dayBlocks.map((block) => block.taskId)),
     ),
     [query, setQuery] = useState(""),
-    tasks = data.tasks.filter((task) => {
-      const project = data.projects.find((item) => item.id === task.projectId),
-        text =
-          `${task.title} ${task.description} ${project?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
-        mine =
-          currentUser?.role !== "usuario" ||
-          task.assignedTo === currentUser.name;
-      return (
-        mine &&
-        task.status !== "Completada" &&
-        text.includes(query.trim().toLowerCase())
-      );
-    }),
+    tasks = data.tasks
+      .filter((task) => {
+        const project = data.projects.find((item) => item.id === task.projectId),
+          text =
+            `${task.title} ${task.description} ${project?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
+          mine =
+            currentUser?.role !== "usuario" ||
+            task.assignedTo === currentUser.name;
+        return (
+          mine &&
+          task.status !== "Completada" &&
+          text.includes(query.trim().toLowerCase())
+        );
+      })
+      .sort(
+        (left, right) =>
+          priorityOrder[left.priority] - priorityOrder[right.priority] ||
+          left.title.localeCompare(right.title, "es", { sensitivity: "base" }),
+      ),
     toggle = (id: string) =>
       setSelected((current) => {
         const next = new Set(current);
