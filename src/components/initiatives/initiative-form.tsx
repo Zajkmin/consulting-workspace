@@ -89,7 +89,7 @@ export function InitiativeForm({
     const initiativeId = crypto.randomUUID(),
       versionId = crypto.randomUUID(),
       primary = responsible[0];
-    await addInitiativeBundle({
+    const saved = await addInitiativeBundle({
       initiative: {
         id: initiativeId,
         projectId,
@@ -140,7 +140,7 @@ export function InitiativeForm({
         : [],
     });
     setSaving(false);
-    onDone();
+    if (saved !== false) onDone();
   };
   return (
     <form

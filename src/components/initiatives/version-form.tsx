@@ -30,13 +30,13 @@ export function VersionForm({
     [error, setError] = useState("");
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         if (deadline < startDate) {
           setError("La fecha fin no puede ser anterior a la fecha de inicio.");
           return;
         }
-        addVersion({
+        const saved = await addVersion({
           id: `v-${Date.now()}`,
           initiativeId,
           code,
@@ -47,7 +47,7 @@ export function VersionForm({
           deadline,
           taskIds: [],
         });
-        onDone();
+        if (saved !== false) onDone();
       }}
     >
       <div className="form-grid">

@@ -11,8 +11,8 @@ type Ctx = {
   login:(email:string,password:string)=>boolean; logout:()=>void; clearNotice:()=>void;
   saveUser:(u:User)=>void; addUser:(u:User)=>void; saveTask:(t:Task)=>void; addTask:(t:Task)=>void;
   deleteUser:(id:string)=>void; saveProject:(p:Project)=>void; addProject:(p:Project)=>void; deleteProject:(id:string)=>void; addArea:(projectId:string,name:string)=>void;
-  addInitiative:(i:Initiative)=>void|Promise<void>; addVersion:(v:DeliverableVersion)=>void|Promise<void>; deleteInitiative:(id:string)=>void; deleteVersion:(id:string)=>void; deleteTask:(id:string)=>void; saveHierarchy:(i:Initiative[],v:DeliverableVersion[],t:Task[])=>void;
-  addInitiativeBundle:(bundle:InitiativeBundle)=>void|Promise<void>;
+  addInitiative:(i:Initiative)=>void|Promise<boolean|void>; addVersion:(v:DeliverableVersion)=>void|Promise<boolean|void>; deleteInitiative:(id:string)=>void; deleteVersion:(id:string)=>void; deleteTask:(id:string)=>void; saveHierarchy:(i:Initiative[],v:DeliverableVersion[],t:Task[])=>void;
+  addInitiativeBundle:(bundle:InitiativeBundle)=>void|Promise<boolean|void>;
   toggleSubtask:(t:string,s:string)=>void; saveBlock:(b:ScheduleBlock)=>void; deleteBlock:(id:string)=>void; savePreferences:(p:WorkPreferences)=>void; setBlockOutcome:(id:string,outcome:DailyTaskOutcome)=>void; scheduleTask:(id:string)=>void; replan:()=>void;
 };
 const Context=createContext<Ctx|null>(null);
@@ -27,7 +27,7 @@ export function AppProvider({children,authenticatedUser,initialWorkspace}:{child
   const data=useMemo(()=>({...allData,user:currentUser??allData.user,projects:allData.projects.filter(p=>allowed.includes(p.id)),initiatives:allData.initiatives.filter(i=>allowed.includes(i.projectId)),versions:allData.versions.filter(v=>allData.initiatives.some(i=>i.id===v.initiativeId&&allowed.includes(i.projectId))),tasks:allData.tasks.filter(t=>allowed.includes(t.projectId)),schedule:allData.schedule.filter(b=>allData.tasks.some(t=>t.id===b.taskId&&allowed.includes(t.projectId)))}),[allData,currentUserId]);
   const mutate=(fn:(d:AppData)=>AppData)=>setAllData(d=>fn(structuredClone(d)));
   const errorMessage=(error:unknown)=>error instanceof Error&&error.message&&!error.message.includes("digest")?error.message:"No se pudo guardar el cambio en SharePoint.";
-  const sync=(work:Promise<AppData>,success:string)=>work.then(value=>{setAllData(value);setNotice(success)}).catch(error=>{setNotice(errorMessage(error))});
+  const sync=async(work:Promise<AppData>,success:string)=>{try{setAllData(await work);setNotice(success);return true}catch(error){setNotice(errorMessage(error));return false}};
   const optimistic=(work:Promise<AppData>,change:(value:AppData)=>AppData,success:string)=>{
     const previous=structuredClone(allData);
     mutate(change);
@@ -44,7 +44,7 @@ export function AppProvider({children,authenticatedUser,initialWorkspace}:{child
   const addArea=(projectId:string,name:string)=>{if(remote)return sync(remoteActions.addAreaAction(projectId,name),"Área creada.");mutate(d=>({...d,projects:d.projects.map(p=>p.id===projectId?{...p,areas:[...new Set([...(p.areas??[]),name])]}:p)}))};
   const saveTask=(task:Task)=>{const change=(d:AppData)=>({...d,tasks:d.tasks.map(t=>t.id===task.id?task:t)});if(remote)return optimistic(remoteActions.saveTaskAction(task,false),change,"Tarea actualizada.");mutate(change)};
   const addTask=(task:Task)=>{if(remote)return sync(remoteActions.saveTaskAction(task,true),"Tarea creada.");mutate(d=>({...d,tasks:[...d.tasks,task],versions:d.versions.map(v=>v.id===task.versionId?{...v,taskIds:[...v.taskIds,task.id]}:v)}))};
-  const addInitiative=(i:Initiative)=>{if(remote){initiativeCreation.current=sync(remoteActions.saveInitiativeAction(i,true),"Iniciativa creada.");return initiativeCreation.current}mutate(d=>({...d,initiatives:[...d.initiatives,i]}))};
+  const addInitiative=(i:Initiative)=>{if(remote){initiativeCreation.current=sync(remoteActions.saveInitiativeAction(i,true),"Iniciativa creada.").then(()=>undefined);return initiativeCreation.current}mutate(d=>({...d,initiatives:[...d.initiatives,i]}))};
   const addVersion=(version:DeliverableVersion)=>{if(remote)return initiativeCreation.current.then(()=>sync(remoteActions.saveVersionAction(version,true),"Versión creada."));mutate(d=>({...d,versions:[...d.versions,version],initiatives:d.initiatives.map(i=>i.id===version.initiativeId?{...i,versionIds:[...i.versionIds,version.id]}:i)}))};
   const addInitiativeBundle=(bundle:InitiativeBundle)=>{if(remote)return sync(remoteActions.createInitiativeBundleAction(bundle),"Iniciativa, versión y tareas creadas.");addInitiative(bundle.initiative);if(bundle.version)addVersion(bundle.version);for(const task of bundle.tasks)addTask(task)};
   const deleteInitiative=(id:string)=>{if(remote)return sync(remoteActions.deleteInitiativeAction(id),"Iniciativa eliminada.");mutate(d=>{const versionIds=new Set(d.versions.filter(v=>v.initiativeId===id).map(v=>v.id));const taskIds=new Set(d.tasks.filter(t=>t.initiativeId===id).map(t=>t.id));return{...d,initiatives:d.initiatives.filter(i=>i.id!==id),versions:d.versions.filter(v=>!versionIds.has(v.id)),tasks:d.tasks.filter(t=>t.initiativeId!==id),schedule:d.schedule.filter(b=>!taskIds.has(b.taskId))}});setNotice("Iniciativa eliminada.")};
