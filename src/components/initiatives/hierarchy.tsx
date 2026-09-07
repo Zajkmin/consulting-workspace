@@ -190,6 +190,17 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       setDraftI((list) =>
         list.map((i) => (i.id === id ? { ...i, [field]: value } : i)),
       ),
+    moveInitiative = (id: string, nextProjectId: string) => {
+      const nextProject = data.projects.find((item) => item.id === nextProjectId);
+      const nextArea = nextProject?.areas?.[0] ?? nextProject?.area ?? "";
+      updateI(id, "projectId", nextProjectId);
+      updateI(id, "area", nextArea);
+      setDraftT((list) =>
+        list.map((task) =>
+          task.initiativeId === id ? { ...task, projectId: nextProjectId } : task,
+        ),
+      );
+    },
     updateV = (id: string, field: keyof DeliverableVersion, value: string) =>
       setDraftV((list) =>
         list.map((v) => (v.id === id ? { ...v, [field]: value } : v)),
@@ -393,8 +404,16 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                     <InitiativeEditRow
                       item={i}
                       data={draftData}
+                      projects={
+                        currentUser?.role === "admin"
+                          ? data.projects
+                          : data.projects.filter((project) =>
+                              currentUser?.editableProjectIds?.includes(project.id),
+                            )
+                      }
                       people={people}
                       update={updateI}
+                      moveProject={moveInitiative}
                       open={openI.has(i.id)}
                       onToggle={() => toggle(openI, i.id, setOpenI)}
                       onDelete={() => {
@@ -686,20 +705,24 @@ function Owners({ names }: { names: string[] }) {
 function InitiativeEditRow({
   item,
   data,
+  projects,
   people,
   update,
+  moveProject,
   open,
   onToggle,
   onDelete,
 }: {
   item: Initiative;
   data: ReturnType<typeof useApp>["data"];
+  projects: ReturnType<typeof useApp>["data"]["projects"];
   people: string[];
   update: (
     id: string,
     f: keyof Initiative,
     v: Initiative[keyof Initiative],
   ) => void;
+  moveProject: (id: string, projectId: string) => void;
   open: boolean;
   onToggle: () => void;
   onDelete: () => void;
@@ -716,6 +739,17 @@ function InitiativeEditRow({
             value={item.name}
             onChange={(e) => update(item.id, "name", e.target.value)}
           />
+          <select
+            className="project-input"
+            value={item.projectId}
+            onChange={(e) => moveProject(item.id, e.target.value)}
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
           <input
             className="micro-input"
             value={item.area}
