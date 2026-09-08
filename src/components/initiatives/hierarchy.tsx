@@ -74,6 +74,18 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     sourceV = editing ? draftV : data.versions,
     sourceT = editing ? draftT : data.tasks,
     all = sourceI.filter((i) => i.projectId === projectId),
+    priorityOrder = { Alto: 0, Medio: 1, Bajo: 2 },
+    pendingVersions = sourceV
+      .filter(
+        (version) =>
+          version.status !== "Completada" &&
+          all.some((initiative) => initiative.id === version.initiativeId),
+      )
+      .sort((a, b) => {
+        const aPriority = all.find((item) => item.id === a.initiativeId)?.impact ?? "Bajo";
+        const bPriority = all.find((item) => item.id === b.initiativeId)?.impact ?? "Bajo";
+        return priorityOrder[aPriority] - priorityOrder[bPriority];
+      }),
     project = data.projects.find((p) => p.id === projectId),
     areas = [
       "Todas",
@@ -219,31 +231,99 @@ export function Hierarchy({ projectId }: { projectId: string }) {
               : t,
           ),
         );
+    },
+    openPendingVersion = (versionId: string) => {
+      const version = sourceV.find((item) => item.id === versionId);
+      if (!version) return;
+      setOpenI((current) => new Set(current).add(version.initiativeId));
+      setOpenV((current) => new Set(current).add(versionId));
+      window.setTimeout(() => {
+        document.getElementById(`version-row-${versionId}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
     };
   return (
     <>
+      <section className="pending-section">
+        <div className="list-title pending-title">
+          <div>
+            <h2>Pendientes</h2>
+          </div>
+          <span>{pendingVersions.length} versiones</span>
+        </div>
+        <div className="pending-table-scroll">
+          <div className="table-wrap pending-wrap">
+            <table className="pending-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Área</th>
+                  <th>Hito</th>
+                  <th>Prioridad</th>
+                  <th>Responsable</th>
+                  <th>Fecha inicio</th>
+                  <th>Fecha fin</th>
+                  <th>Avance</th>
+                </tr>
+              </thead>
+              <tbody>
+            {pendingVersions.length ? (
+              pendingVersions.map((version, index) => {
+                const initiative = all.find(
+                  (item) => item.id === version.initiativeId,
+                );
+                return (
+                  <tr
+                    className={`pending-row pending-priority-${(initiative?.impact ?? "Bajo").toLowerCase()}`}
+                    key={version.id}
+                    onClick={() => openPendingVersion(version.id)}
+                  >
+                    <td>{index + 1}</td>
+                    <td>{initiative?.area ?? "Sin área"}</td>
+                    <td className="task-name"><b>{version.code}</b> {version.name}</td>
+                    <td>
+                      <span className={`priority-pill priority-${(initiative?.impact ?? "Bajo").toLowerCase()}`}>
+                        {initiative?.impact ?? "Sin definir"}
+                      </span>
+                    </td>
+                    <td>{version.owner}</td>
+                    <td>{formatDate(version.startDate)}</td>
+                    <td>{formatDate(version.deadline)}</td>
+                    <td><Progress value={versionProgress(version.id, data)} /></td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr><td className="pending-empty" colSpan={8}>No hay versiones pendientes.</td></tr>
+            )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section className="areas">
-        <div className="section-title">
-          <h2>Áreas</h2>
+        <div className="areas-toolbar">
+          <strong>Área:</strong>
+          <div className="filters">
+            {areas.map((area) => (
+              <button
+                key={area}
+                className={areaFilter === area ? "active" : ""}
+                onClick={() => setAreaFilter(area)}
+              >
+                {area}
+              </button>
+            ))}
+          </div>
           <div className="section-actions">
-            <span>Filtrá el contenido del proyecto</span>
             {canEdit && (
               <button className="link-button" onClick={() => setAreaForm(true)}>
                 + Nueva área
               </button>
             )}
           </div>
-        </div>
-        <div className="filters">
-          {areas.map((area) => (
-            <button
-              key={area}
-              className={areaFilter === area ? "active" : ""}
-              onClick={() => setAreaFilter(area)}
-            >
-              {area}
-            </button>
-          ))}
         </div>
       </section>
       <section>
@@ -470,7 +550,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                 }}
                               />
                             ) : (
-                              <div className={`entity-row version-row${versionProgress(v.id, data) === 100 ? " completed-entity" : ""}`}>
+                              <div id={`version-row-${v.id}`} className={`entity-row version-row${versionProgress(v.id, data) === 100 ? " completed-entity" : ""}`}>
                                 <div className="entity-name indent">
                                   <button
                                     className={
