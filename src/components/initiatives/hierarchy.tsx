@@ -259,8 +259,8 @@ export function Hierarchy({ projectId }: { projectId: string }) {
               <thead>
                 <tr>
                   <th>No</th>
-                  <th>Área</th>
-                  <th>Hito</th>
+                  <th>Iniciativa</th>
+                  <th>Entregable</th>
                   <th>Prioridad</th>
                   <th>Responsable</th>
                   <th>Fecha inicio</th>
@@ -281,8 +281,8 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                     onClick={() => openPendingVersion(version.id)}
                   >
                     <td>{index + 1}</td>
-                    <td>{initiative?.area ?? "Sin área"}</td>
-                    <td className="task-name"><b>{version.code}</b> {version.name}</td>
+                    <td>{initiative?.name ?? "Sin iniciativa"}</td>
+                    <td className="task-name"><b>{version.code}</b></td>
                     <td>
                       <span className={`priority-pill priority-${(initiative?.impact ?? "Bajo").toLowerCase()}`}>
                         {initiative?.impact ?? "Sin definir"}
