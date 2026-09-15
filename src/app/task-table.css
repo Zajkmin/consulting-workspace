@@ -1,0 +1,53 @@
+.pending-filters {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pending-filters select {
+  width: min(190px, 100%);
+}
+
+.pending-home-wrap {
+  overflow-x: auto;
+}
+
+.pending-home-table {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.pending-home-table th:nth-child(1) { width: 74px; }
+.pending-home-table th:nth-child(2) { width: 145px; }
+.pending-home-table th:nth-child(3) { width: 90px; }
+.pending-home-table th:nth-child(4) { width: 190px; }
+.pending-home-table th:nth-child(5) { width: 65px; }
+.pending-home-table th:nth-child(6) { width: 260px; }
+.pending-home-table th:nth-child(7) { width: 155px; }
+.pending-home-table th:nth-child(8) { width: 105px; }
+
+.pending-home-table td {
+  vertical-align: middle;
+}
+
+.pending-home-table .wrap-cell {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.pending-home-table .owner-cell > span:last-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .pending-toolbar {
+    align-items: stretch;
+  }
+
+  .pending-filters,
+  .pending-filters select,
+  .pending-filters .search {
+    width: 100%;
+  }
+}
