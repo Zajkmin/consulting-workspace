@@ -503,7 +503,20 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                           )
                         ) {
                           deleteInitiative(i.id);
-                          cancel();
+                          setDraftI((items) =>
+                            items.filter((item) => item.id !== i.id),
+                          );
+                          setDraftV((items) =>
+                            items.filter((item) => item.initiativeId !== i.id),
+                          );
+                          setDraftT((items) =>
+                            items.filter((item) => item.initiativeId !== i.id),
+                          );
+                          setOpenI((items) => {
+                            const next = new Set(items);
+                            next.delete(i.id);
+                            return next;
+                          });
                         }
                       }}
                     />
@@ -545,7 +558,19 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                     )
                                   ) {
                                     deleteVersion(v.id);
-                                    cancel();
+                                    setDraftV((items) =>
+                                      items.filter((item) => item.id !== v.id),
+                                    );
+                                    setDraftT((items) =>
+                                      items.filter(
+                                        (item) => item.versionId !== v.id,
+                                      ),
+                                    );
+                                    setOpenV((items) => {
+                                      const next = new Set(items);
+                                      next.delete(v.id);
+                                      return next;
+                                    });
                                   }
                                 }}
                               />
@@ -605,7 +630,11 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                             )
                                           ) {
                                             deleteTask(t.id);
-                                            cancel();
+                                            setDraftT((items) =>
+                                              items.filter(
+                                                (item) => item.id !== t.id,
+                                              ),
+                                            );
                                           }
                                         }}
                                       />

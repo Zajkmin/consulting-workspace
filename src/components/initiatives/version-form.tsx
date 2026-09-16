@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 const today = new Date().toISOString().slice(0, 10);
 const defaultEnd = new Date(Date.now() + 14 * 86400000)
@@ -12,6 +12,7 @@ export function VersionForm({
   initiativeId: string;
   onDone: () => void;
 }) {
+  const savingRef = useRef(false);
   const { data, addVersion } = useApp(),
     existing = data.versions.filter((v) => v.initiativeId === initiativeId),
     initiative = data.initiatives.find((item) => item.id === initiativeId),
@@ -27,27 +28,39 @@ export function VersionForm({
     [startDate, setStartDate] = useState(today),
     [deadline, setDeadline] = useState(defaultEnd),
     [owner, setOwner] = useState(data.user.name),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [saving, setSaving] = useState(false);
+  const submit = async () => {
+    if (savingRef.current) return;
+    if (deadline < startDate) {
+      setError("La fecha fin no puede ser anterior a la fecha de inicio.");
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const saved = await addVersion({
+        id: crypto.randomUUID(),
+        initiativeId,
+        code,
+        name,
+        status: "Pendiente",
+        owner,
+        startDate,
+        deadline,
+        taskIds: [],
+      });
+      if (saved !== false) onDone();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
   return (
     <form
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        if (deadline < startDate) {
-          setError("La fecha fin no puede ser anterior a la fecha de inicio.");
-          return;
-        }
-        const saved = await addVersion({
-          id: `v-${Date.now()}`,
-          initiativeId,
-          code,
-          name,
-          status: "Pendiente",
-          owner,
-          startDate,
-          deadline,
-          taskIds: [],
-        });
-        if (saved !== false) onDone();
+        void submit();
       }}
     >
       <div className="form-grid">
@@ -100,10 +113,17 @@ export function VersionForm({
       </div>
       {error && <p className="form-error">{error}</p>}
       <div className="modal-actions">
-        <button type="button" className="button quiet" onClick={onDone}>
+        <button
+          type="button"
+          className="button quiet"
+          onClick={onDone}
+          disabled={saving}
+        >
           Cancelar
         </button>
-        <button className="button primary">Crear versión</button>
+        <button className="button primary" disabled={saving}>
+          {saving ? "Guardando…" : "Crear versión"}
+        </button>
       </div>
     </form>
   );

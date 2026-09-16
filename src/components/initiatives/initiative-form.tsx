@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/purity */
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import type { Priority, TaskStatus } from "@/types";
 type DraftTask = {
@@ -19,6 +19,7 @@ export function InitiativeForm({
   onDone: () => void;
   defaultProjectId?: string;
 }) {
+  const savingRef = useRef(false);
   const pathname = usePathname(),
     contextualProjectId = pathname.startsWith("/proyectos/")
       ? pathname.split("/")[2]
@@ -77,6 +78,7 @@ export function InitiativeForm({
         current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
       );
   const submit = async () => {
+    if (savingRef.current) return;
     if (!responsible.length)
       return setError("Seleccioná al menos un responsable para la iniciativa.");
     if (deadline && deadline < startDate)
@@ -91,6 +93,7 @@ export function InitiativeForm({
       );
     if (!projectId || !area)
       return setError("Seleccioná un proyecto y un área.");
+    savingRef.current = true;
     setSaving(true);
     const initiativeId = crypto.randomUUID(),
       versionId = crypto.randomUUID(),
@@ -145,6 +148,7 @@ export function InitiativeForm({
             }))
         : [],
     });
+    savingRef.current = false;
     setSaving(false);
     if (saved !== false) onDone();
   };
@@ -383,7 +387,7 @@ export function InitiativeForm({
       </div>
       {error && <p className="form-error initiative-error">{error}</p>}
       <div className="modal-actions">
-        <button type="button" className="button quiet" onClick={onDone}>
+        <button type="button" className="button quiet" onClick={onDone} disabled={saving}>
           Cancelar
         </button>
         <button className="button primary" disabled={saving}>
