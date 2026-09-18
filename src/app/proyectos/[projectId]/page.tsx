@@ -34,7 +34,15 @@ export default function ProjectPage() {
 
 	return (
 		<main className="shell project-page">
-			<h1>{project.name}</h1>
+			<div className="project-page-header">
+				<h1>{project.name}</h1>
+				<div className="project-page-actions">
+					<Link href={`/resumen?projectId=${project.id}`} className="project-summary-button">Resumen</Link>
+					<Link href={`/seguimiento?projectId=${project.id}`} className="project-gantt-button" aria-label={`Ver Gantt de ${project.name}`}>
+						Gantt
+					</Link>
+				</div>
+			</div>
 			<Hierarchy projectId={project.id} />
 		</main>
 	);

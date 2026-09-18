@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import {
+  effectiveInitiativeStatus,
+  effectiveVersionStatus,
   formatDate,
   initiativeProgress,
   taskProgress,
@@ -78,7 +80,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     pendingVersions = sourceV
       .filter(
         (version) =>
-          version.status !== "Completada" &&
+          effectiveVersionStatus(version, sourceT) !== "Completada" &&
           all.some((initiative) => initiative.id === version.initiativeId),
       )
       .sort((a, b) => {
@@ -243,6 +245,14 @@ export function Hierarchy({ projectId }: { projectId: string }) {
           block: "center",
         });
       }, 0);
+    },
+    toggleValidation = (versionId: string, validated: boolean) => {
+      const versions = data.versions.map((version) =>
+        version.id === versionId
+          ? { ...version, validated, status: validated ? "Completada" as const : "En revisión" as const }
+          : version,
+      );
+      saveHierarchy(data.initiatives, versions, data.tasks);
     };
   return (
     <>
@@ -533,7 +543,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       <span>{formatDate(i.startDate)}</span>
                       <span>{formatDate(i.deadline)}</span>
                       <span>
-                        <StatusPill value={i.status} />
+                        <StatusPill value={effectiveInitiativeStatus(i, data.versions, data.tasks)} />
                       </span>
                       <span className="impact">{i.impact}</span>
                     </div>
@@ -598,9 +608,16 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                 <span>{formatDate(v.startDate)}</span>
                                 <span>{formatDate(v.deadline)}</span>
                                 <span>
-                                  <StatusPill value={v.status} />
+                                  <StatusPill value={effectiveVersionStatus(v, data.tasks)} />
                                 </span>
-                                <span className="muted-cell">Heredado</span>
+                                <span className="validation-cell">
+                                  {effectiveVersionStatus(v, data.tasks) === "En revisión" && canEdit ? (
+                                    <label className="validation-check">
+                                      <input type="checkbox" checked={Boolean(v.validated)} onChange={(event) => toggleValidation(v.id, event.target.checked)} />
+                                      <span>¿Ya validado?</span>
+                                    </label>
+                                  ) : v.validated ? "Validado" : <span className="muted-cell">Heredado</span>}
+                                </span>
                               </div>
                             )}
                             {(openV.has(v.id) || filters.taskOwner !== "all") && (
