@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import { StatusPill } from "@/components/ui/status-pill";
-import { TaskDrawer } from "./task-drawer";
+import { QuickTaskAction } from "./quick-task-action";
 import type { Task } from "@/types";
 
 const priority = { Alta: 0, Media: 1, Baja: 2 } as const;
@@ -154,7 +154,7 @@ export function TaskTable() {
           </div>
         )}
       </div>
-      <TaskDrawer task={selected} onClose={() => setSelected(null)} />
+      <QuickTaskAction task={selected} onClose={() => setSelected(null)} />
     </>
   );
 }
