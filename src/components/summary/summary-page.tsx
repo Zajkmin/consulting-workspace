@@ -13,6 +13,8 @@ const statusClass: Record<TaskStatus, string> = {
   Retrasada: "summary-status late",
 };
 
+const statusLabel = (value: TaskStatus) => value === "Retrasada" ? "Atrasada" : value;
+
 const formatDate = (value: string) => {
   if (!value) return "Sin fecha";
   const date = new Date(`${value}T12:00:00`);
@@ -101,7 +103,7 @@ export function SummaryPage({ projectId }: { projectId?: string }) {
                 {pendingTasks.map((task) => {
                   const initiative = initiatives.find((item) => item.id === task.initiativeId);
                   const owner = allData.users.find((user) => user.id === task.assignedTo);
-                  return <tr key={task.id}><td><strong>{task.title}</strong></td><td>{initiative?.name ?? "Sin iniciativa"}</td><td><span className={statusClass[task.status]}>{task.status}</span></td><td>{owner?.name ?? "Sin asignar"}</td><td>{formatDate(task.deadline)}</td><td><div className="summary-task-progress"><i style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div></td></tr>;
+                  return <tr key={task.id}><td><strong>{task.title}</strong></td><td>{initiative?.name ?? "Sin iniciativa"}</td><td><span className={statusClass[task.status]}>{statusLabel(task.status)}</span></td><td>{owner?.name ?? "Sin asignar"}</td><td>{formatDate(task.deadline)}</td><td><div className="summary-task-progress"><i style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div></td></tr>;
                 })}
               </tbody>
             </table>

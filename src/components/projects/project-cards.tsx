@@ -11,6 +11,6 @@ export function ProjectCards({ projects, initiatives, versions }: { projects:Pro
       pending: deliverables.filter(version => version.status !== "Completada" && version.status !== "Retrasada").length,
     };
     const activeDeliverables = stats.pending + stats.late;
-    return <Link key={project.id} href={`/proyectos/${project.id}`} className="project-card"><i style={{background:project.color}}/><div className="project-title"><b>{project.name}</b><span>→</span></div><small>{activeDeliverables} entregables activos</small><div className="project-stats"><span><b>{stats.completed}</b> completadas</span><span><b>{stats.pending}</b> pendientes</span><span className="late"><b>{stats.late}</b> retrasadas</span></div></Link>;
+    return <Link key={project.id} href={`/proyectos/${project.id}`} className="project-card"><i style={{background:project.color}}/><div className="project-title"><b>{project.name}</b><span>→</span></div><small>{activeDeliverables} entregables activos</small><div className="project-stats"><span><b>{stats.completed}</b> completadas</span><span><b>{stats.pending}</b> pendientes</span><span className="late"><b>{stats.late}</b> atrasadas</span></div></Link>;
   })}</div>;
 }

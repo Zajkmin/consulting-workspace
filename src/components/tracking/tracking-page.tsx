@@ -50,6 +50,8 @@ const statusColor: Record<TrackingStatus, string> = {
 const toTrackingStatus = (status: ReturnType<typeof effectiveVersionStatus>): TrackingStatus =>
   status === "Completada" ? "Completado" : status === "Retrasada" ? "Retrasado" : status;
 
+const trackingStatusLabel = (status: TrackingStatus) => status === "Retrasado" ? "Atrasado" : status;
+
 const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 const dateValue = (value: string) => {
@@ -269,7 +271,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
           <strong>{summary.pending}</strong>
         </div>
         <div className="summary-card">
-          <small>Retrasados</small>
+          <small>Atrasados</small>
           <strong>{summary.delayed}</strong>
         </div>
         <div className="summary-card emphasis">
@@ -354,7 +356,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
               <h2>{activeVersion.name}</h2>
             </div>
             <div className="detail-badges">
-              <span className={`badge ${statusColor[activeVersion.status]}`}>{activeVersion.status}</span>
+              <span className={`badge ${statusColor[activeVersion.status]}`}>{trackingStatusLabel(activeVersion.status)}</span>
               <span className="meta-chip">{formatShortDate(activeVersion.startDate)} – {formatShortDate(activeVersion.deadline)}</span>
             </div>
           </div>
