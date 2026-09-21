@@ -17,6 +17,11 @@ export function WeekView() {
   const { data, currentUser, setBlockOutcome, deleteBlock } = useApp(),
     canManage =
       currentUser?.role === "admin" || currentUser?.permissions?.manageSchedule,
+    isCurrentUserTask = (task?: { assignedTo?: string | null } | null) => {
+      if (!task) return false;
+      return currentUser?.role !== "usuario" || task.assignedTo === currentUser.name;
+    },
+    visibleTasks = data.tasks.filter((task) => isCurrentUserTask(task)),
     [selectedDate, setSelectedDate] = useState<string | null>(null),
     [weekOffset, setWeekOffset] = useState(0),
     days = useMemo(() => {
@@ -39,10 +44,22 @@ export function WeekView() {
       });
     }, [weekOffset]),
     selectedDay = days.find((day) => day.date === selectedDate),
-    planned = new Set(data.schedule.map((block) => block.taskId)),
-    pending = data.tasks.filter(
+    planned = new Set(
+      data.schedule
+        .map((block) => data.tasks.find((task) => task.id === block.taskId))
+        .filter(
+          (task): task is (typeof data.tasks)[number] =>
+            !!task && isCurrentUserTask(task),
+        )
+        .map((task) => task.id),
+    ),
+    pending = visibleTasks.filter(
       (task) => task.status !== "Completada" && !planned.has(task.id),
-    );
+    ),
+    userSchedule = data.schedule.filter((block) => {
+      const task = data.tasks.find((item) => item.id === block.taskId);
+      return isCurrentUserTask(task);
+    });
   return (
     <>
       <section className="agenda-layout">
@@ -59,9 +76,10 @@ export function WeekView() {
             <span>Tareas elegidas</span>
           </div>
           {days.map((day) => {
-            const blocks = data.schedule.filter(
-              (block) => block.date === day.date,
-            );
+            const blocks = data.schedule.filter((block) => {
+                const task = data.tasks.find((item) => item.id === block.taskId);
+                return block.date === day.date && (!task || isCurrentUserTask(task));
+              });
             return (
               <div className="day" key={day.date}>
                 <div className="day-label">
@@ -175,12 +193,12 @@ export function WeekView() {
         <aside className="side-stack">
           <section className="side-card week-summary">
             <h2>Resumen de la semana</h2>
-            <strong>{data.schedule.length}</strong>
+            <strong>{userSchedule.length}</strong>
             <small>tareas planificadas</small>
             <div>
               <span>
                 {
-                  data.schedule.filter(
+                  userSchedule.filter(
                     (block) => (block.outcome ?? "planned") === "advanced",
                   ).length
                 }{" "}
@@ -188,7 +206,7 @@ export function WeekView() {
               </span>
               <span>
                 {
-                  data.schedule.filter(
+                  userSchedule.filter(
                     (block) =>
                       (block.outcome ??
                         (block.completed ? "completed" : "planned")) ===
