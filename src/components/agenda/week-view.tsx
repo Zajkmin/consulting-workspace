@@ -13,13 +13,25 @@ const names = [
   "Viernes",
   "Sábado",
 ];
+function normalizeUserName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function WeekView() {
   const { data, currentUser, setBlockOutcome, deleteBlock } = useApp(),
     canManage =
       currentUser?.role === "admin" || currentUser?.permissions?.manageSchedule,
     isCurrentUserTask = (task?: { assignedTo?: string | null } | null) => {
       if (!task) return false;
-      return currentUser?.role !== "usuario" || task.assignedTo === currentUser.name;
+      if (currentUser?.role !== "usuario") return true;
+      const currentName = normalizeUserName(currentUser.name || currentUser.email || "");
+      const taskName = normalizeUserName(task.assignedTo || "");
+      const emailName = normalizeUserName((currentUser.email || "").split("@")[0] || "");
+      return currentName === taskName || emailName === taskName;
     },
     visibleTasks = data.tasks.filter((task) => isCurrentUserTask(task)),
     [selectedDate, setSelectedDate] = useState<string | null>(null),

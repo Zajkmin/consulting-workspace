@@ -5,6 +5,14 @@ import { useApp } from "@/hooks/use-app";
 const priorityClass = (priority: "Alta" | "Media" | "Baja") =>
   priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
 const priorityOrder = { Alta: 0, Media: 1, Baja: 2 } as const;
+function normalizeUserName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function DailyTaskPicker({
   date,
   onDone,
@@ -18,6 +26,13 @@ export function DailyTaskPicker({
       () => new Set(dayBlocks.map((block) => block.taskId)),
     ),
     [query, setQuery] = useState(""),
+    isMine = (taskAssignedTo?: string | null) => {
+      if (!currentUser) return false;
+      const currentName = normalizeUserName(currentUser.name || currentUser.email || "");
+      const taskName = normalizeUserName(taskAssignedTo || "");
+      const emailName = normalizeUserName((currentUser.email || "").split("@")[0] || "");
+      return currentUser.role !== "usuario" || currentName === taskName || emailName === taskName;
+    },
     tasks = data.tasks
       .filter((task) => {
         const project = data.projects.find((item) => item.id === task.projectId),
@@ -26,9 +41,7 @@ export function DailyTaskPicker({
           ),
           text =
             `${task.title} ${task.description} ${project?.name ?? ""} ${initiative?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
-          mine =
-            currentUser?.role !== "usuario" ||
-            task.assignedTo === currentUser.name;
+          mine = isMine(task.assignedTo);
         return (
           mine &&
           task.status !== "Completada" &&
