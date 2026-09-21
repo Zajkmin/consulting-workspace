@@ -1,6 +1,6 @@
 import type { AppData, Project } from "@/types";
 
-export type DataProvider = "local" | "sharepoint";
+export type DataProvider = "local" | "sharepoint" | "supabase";
 
 export interface ProjectRepository {
   list(): Promise<Project[]>;

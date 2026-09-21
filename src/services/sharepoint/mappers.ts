@@ -2,14 +2,14 @@ import type { Client, DailyTaskOutcome, Project, ScheduleBlock, Subtask, TaskSta
 import type { SharePointListItem } from "./list-reader.ts";
 
 export interface MappingResult<T> { entities: T[]; errors: string[] }
-export interface AreaRecord { id: string; projectId: string; name: string; active: boolean }
-export interface InitiativeRecord { id:string; projectId:string; areaId:string; name:string; description?:string; successCriteria?:string; status:TaskStatus; ownerUserId:string; ownerUserIds?:string[]; startDate:string; deadline:string; impact:"Alto"|"Medio"|"Bajo" }
-export interface VersionRecord { id:string; initiativeId:string; code:string; name:string; status:TaskStatus; ownerUserId:string; startDate:string; deadline:string; validated:boolean }
-export interface TaskRecord { id:string; projectId:string; initiativeId:string; versionId:string; title:string; description:string; priority:"Alta"|"Media"|"Baja"; status:TaskStatus; deadline:string; estimatedMinutes:number; splittable:boolean; progress:number; assignedUserId:string }
+export interface AreaRecord { id: string; projectId: string; name: string; active: boolean; revision?:string }
+export interface InitiativeRecord { id:string; projectId:string; areaId:string; name:string; description?:string; successCriteria?:string; status:TaskStatus; ownerUserId:string; ownerUserIds?:string[]; startDate:string; deadline:string; impact:"Alto"|"Medio"|"Bajo"; revision?:string }
+export interface VersionRecord { id:string; initiativeId:string; code:string; name:string; status:TaskStatus; ownerUserId:string; startDate:string; deadline:string; validated:boolean; revision?:string }
+export interface TaskRecord { id:string; projectId:string; initiativeId:string; versionId:string; title:string; description:string; priority:"Alta"|"Media"|"Baja"; status:TaskStatus; deadline:string; estimatedMinutes:number; splittable:boolean; progress:number; assignedUserId:string; revision?:string }
 export interface SubtaskRecord extends Omit<Subtask,"assignedTo"> { taskId:string; assignedUserId:string }
 export interface DependencyRecord { id:string; taskId:string; dependsOnTaskId:string }
 export interface ScheduleRecord extends ScheduleBlock { userId:string }
-export interface WorkPreferencesRecord extends WorkPreferences { id:string; userId:string }
+export interface WorkPreferencesRecord extends WorkPreferences { id:string; userId:string; revision?:string }
 export interface ProjectMemberRecord { id:string; projectId:string; userId:string; accessLevel:"view"|"edit"|"admin" }
 
 class InvalidFieldError extends Error {}

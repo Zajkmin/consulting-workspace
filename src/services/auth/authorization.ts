@@ -1,21 +1,27 @@
 import "server-only";
+
 import { redirect } from "next/navigation";
-import { auth } from "../../../auth";
 import type { UserPermissions, UserRole } from "../../types/index.ts";
-import { SharePointIdentityRepository, normalizeEmail } from "./identity-repository.ts";
+import { resolveSupabaseServerPrincipal } from "./supabase-server-principal.ts";
 
 export type ServerPermission = "manageUsers"|"manageProjects"|"manageSchedule";
 export type ProjectAccess = "view"|"edit"|"admin";
 export interface ServerPrincipal { appId:string; email:string; entraObjectId:string; role:UserRole; permissions:UserPermissions; assignedProjectIds:string[]; editableProjectIds:string[] }
 
+export async function requireSupabaseServerPrincipal(): Promise<ServerPrincipal> {
+  const principal = await resolveSupabaseServerPrincipal();
+  if (!principal) {
+    redirect("/login");
+  }
+  return principal;
+}
+
 export async function requireServerPrincipal():Promise<ServerPrincipal> {
-  const session = await auth();
-  const identity = session?.user;
-  if (!identity?.appId || !identity.email || !identity.entraObjectId) redirect("/login");
-  const record = await new SharePointIdentityRepository().findByEmail(identity.email);
-  if (!record?.user.active || record.user.id !== identity.appId || normalizeEmail(record.user.email) !== normalizeEmail(identity.email) || record.user.entraObjectId !== identity.entraObjectId) redirect("/login?error=AccessDenied");
-  const access=record.user.role==="admin"?{assignedProjectIds:[],editableProjectIds:[]}:await new SharePointIdentityRepository().getProjectAccess(record.user.id);
-  return { appId:record.user.id,email:record.user.email,entraObjectId:identity.entraObjectId,role:record.user.role,permissions:record.user.permissions??{manageUsers:false,manageProjects:false,manageSchedule:false},...access };
+  return requireSupabaseServerPrincipal();
+}
+
+export async function getServerPrincipal():Promise<ServerPrincipal | null> {
+  return resolveSupabaseServerPrincipal();
 }
 
 export function hasServerPermission(principal:ServerPrincipal,permission:ServerPermission):boolean{if(principal.role==="admin")return true;if(permission==="manageProjects")return principal.role==="gestor";if(permission==="manageSchedule")return true;return false}

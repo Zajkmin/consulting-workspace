@@ -12,14 +12,22 @@
     "sharepoint:provision": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/provision-sharepoint.ts",
     "sharepoint:resolve-list-ids": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/resolve-sharepoint-list-ids.ts",
     "sharepoint:test-all": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-sharepoint-all.ts",
+    "sharepoint:prevalidate-migration": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/prevalidate-sharepoint-migration.ts",
+    "supabase:migrate-sharepoint": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/migrate-sharepoint-to-supabase.ts",
+    "supabase:test-read": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-supabase-read.ts",
+    "supabase:test-crud": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-supabase-crud.ts",
+    "supabase:link-auth": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/link-supabase-auth-user.ts",
     "sharepoint:test-write-client": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/test-write-client.ts",
     "sharepoint:bootstrap-admin": "node --no-warnings --env-file=.env.local --experimental-strip-types scripts/bootstrap-admin.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
     "next": "16.3.4",
     "next-auth": "^5.0.0-beta.32",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

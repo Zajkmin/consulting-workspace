@@ -45,7 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     authorized({auth,request}) {
       const path=request.nextUrl.pathname;
-      if (path === "/login" || path.startsWith("/api/auth")) return true;
+      if (path === "/login" || path.startsWith("/auth/") || path.startsWith("/api/auth")) return true;
       return Boolean(auth?.user?.appId && auth.user.entraObjectId);
     },
   },

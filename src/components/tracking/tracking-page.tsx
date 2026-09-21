@@ -2,7 +2,7 @@
 
 import { useApp } from "@/hooks/use-app";
 import { effectiveVersionStatus } from "@/lib/format";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type TrackingStatus = "Pendiente" | "En curso" | "En revisión" | "Retrasado" | "Completado";
 
@@ -231,12 +231,6 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
     () => deliverables.find((version) => version.id === selectedVersionId) ?? deliverables[0] ?? null,
     [deliverables, selectedVersionId],
   );
-
-  useEffect(() => {
-    if (!selectedVersionId && deliverables[0]) {
-      setSelectedVersionId(deliverables[0].id);
-    }
-  }, [deliverables, selectedVersionId]);
 
   if (!currentUser) {
     return <section className="tracking-shell"><div className="empty-state"><b>No hay usuario activo.</b></div></section>;
