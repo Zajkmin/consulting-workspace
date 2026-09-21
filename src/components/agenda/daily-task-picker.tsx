@@ -2,17 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { matchesCurrentUserName } from "@/lib/user-name-match";
 const priorityClass = (priority: "Alta" | "Media" | "Baja") =>
   priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
 const priorityOrder = { Alta: 0, Media: 1, Baja: 2 } as const;
-function normalizeUserName(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 export function DailyTaskPicker({
   date,
   onDone,
@@ -28,10 +21,7 @@ export function DailyTaskPicker({
     [query, setQuery] = useState(""),
     isMine = (taskAssignedTo?: string | null) => {
       if (!currentUser) return false;
-      const currentName = normalizeUserName(currentUser.name || currentUser.email || "");
-      const taskName = normalizeUserName(taskAssignedTo || "");
-      const emailName = normalizeUserName((currentUser.email || "").split("@")[0] || "");
-      return currentUser.role !== "usuario" || currentName === taskName || emailName === taskName;
+      return currentUser.role !== "usuario" || matchesCurrentUserName(currentUser.name, currentUser.email, taskAssignedTo);
     },
     tasks = data.tasks
       .filter((task) => {

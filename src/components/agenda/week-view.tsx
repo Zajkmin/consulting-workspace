@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import { Modal } from "@/components/ui/modal";
+import { matchesCurrentUserName } from "@/lib/user-name-match";
 import { DailyTaskPicker } from "./daily-task-picker";
 const names = [
   "Domingo",
@@ -13,14 +14,6 @@ const names = [
   "Viernes",
   "Sábado",
 ];
-function normalizeUserName(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 export function WeekView() {
   const { data, currentUser, setBlockOutcome, deleteBlock } = useApp(),
     canManage =
@@ -28,10 +21,11 @@ export function WeekView() {
     isCurrentUserTask = (task?: { assignedTo?: string | null } | null) => {
       if (!task) return false;
       if (currentUser?.role !== "usuario") return true;
-      const currentName = normalizeUserName(currentUser.name || currentUser.email || "");
-      const taskName = normalizeUserName(task.assignedTo || "");
-      const emailName = normalizeUserName((currentUser.email || "").split("@")[0] || "");
-      return currentName === taskName || emailName === taskName;
+      return matchesCurrentUserName(
+        currentUser.name,
+        currentUser.email,
+        task.assignedTo,
+      );
     },
     visibleTasks = data.tasks.filter((task) => isCurrentUserTask(task)),
     [selectedDate, setSelectedDate] = useState<string | null>(null),
