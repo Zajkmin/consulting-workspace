@@ -29,11 +29,11 @@ function initialsFor(value: string) {
 }
 
 function readThemePreference(): ThemeOption {
-  if (typeof window === "undefined") return "sistema";
+  if (typeof window === "undefined") return "claro";
   const value = window.localStorage.getItem(THEME_KEY);
   return value === "claro" || value === "oscuro" || value === "sistema"
     ? value
-    : "sistema";
+    : "claro";
 }
 
 function applyTheme(theme: ThemeOption) {
