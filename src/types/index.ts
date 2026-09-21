@@ -4,7 +4,7 @@ export type UserRole = "admin" | "gestor" | "usuario";
 export interface UserPermissions { manageUsers:boolean;manageProjects:boolean;manageSchedule:boolean }
 export interface User { id:string; name:string; email:string; initials:string; role:UserRole; assignedProjectIds:string[]; editableProjectIds?:string[]; permissions?:UserPermissions; active:boolean; entraObjectId?:string; revision?:string }
 export interface Client { id: string; name: string }
-export interface Project { id:string; clientId:string; name:string; color:string; area:string; areas?:string[]; active:boolean; revision?:string }
+export interface Project { id:string; clientId?: string | null; name:string; color:string; area:string; areas?:string[]; active:boolean; revision?:string }
 export interface Subtask { id: string; title: string; completed: boolean; assignedTo: string; assignedProfileId?: string; completedAt?: string; revision?:string }
 export interface Task { id:string; projectId:string; initiativeId:string; versionId:string; title:string; description:string; priority:Priority; status:TaskStatus; deadline:string; estimatedMinutes:number; splittable:boolean; progress:number; assignedTo:string; assignedProfileId?: string; dependencies:string[]; subtasks:Subtask[]; revision?:string }
 export interface DeliverableVersion { id:string; initiativeId:string; code:string; name:string; status:TaskStatus; owner:string; startDate:string; deadline:string; taskIds:string[]; validated?:boolean; revision?:string }

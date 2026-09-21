@@ -35,7 +35,7 @@ export class SupabaseWorkspaceStore {
         role:requiredText(row,"role") as UserRole,assignedProjectIds:[],editableProjectIds:[],active:boolean(row,"active"),entraObjectId:optionalText(row,"entra_object_id"),
         permissions:{manageUsers:boolean(row,"manage_users"),manageProjects:boolean(row,"manage_projects"),manageSchedule:boolean(row,"manage_schedule")},revision:requiredText(row,"updated_at"),
       })),
-      projects:rows.projects.map(row=>{const primary=areasById.get(requiredText(row,"primary_area_id"));return{id:requiredText(row,"id"),clientId:requiredText(row,"client_id"),name:requiredText(row,"name"),color:requiredText(row,"color"),area:primary?requiredText(primary,"name"):"",areas:[],active:boolean(row,"active"),revision:requiredText(row,"updated_at")} as Project}),
+      projects:rows.projects.map(row=>{const primary=areasById.get(requiredText(row,"primary_area_id"));return{id:requiredText(row,"id"),clientId:optionalText(row,"client_id") ?? null,name:requiredText(row,"name"),color:requiredText(row,"color"),area:primary?requiredText(primary,"name"):"",areas:[],active:boolean(row,"active"),revision:requiredText(row,"updated_at")} as Project}),
       areas:rows.areas.map(row=>({id:requiredText(row,"id"),projectId:requiredText(row,"project_id"),name:requiredText(row,"name"),active:boolean(row,"active"),revision:requiredText(row,"updated_at")} satisfies AreaRecord)),
       projectMembers:rows.project_members.map(row=>({id:requiredText(row,"id"),projectId:requiredText(row,"project_id"),userId:requiredText(row,"profile_id"),accessLevel:requiredText(row,"access_level") as ProjectMemberRecord["accessLevel"]})),
       initiatives:rows.initiatives.map(row=>{

@@ -19,7 +19,7 @@ export interface SharePointEntityByKey {
 export type SharePointEntityKey = keyof SharePointEntityByKey;
 
 export const listSerializers: { [K in SharePointEntityKey]: (entity: SharePointEntityByKey[K]) => Record<string, unknown> } = {
-  projects: entity => ({ Title:entity.name,AppId:entity.id,ClientId:entity.clientId,ColorHex:entity.color,PrimaryArea:entity.area,IsActive:entity.active }),
+  projects: entity => ({ Title:entity.name,AppId:entity.id,ClientId:entity.clientId ?? null,ColorHex:entity.color,PrimaryArea:entity.area,IsActive:entity.active }),
   clients: entity => ({ Title:entity.name,AppId:entity.id }),
   areas: entity => ({ Title:entity.name,AppId:entity.id,ProjectId:entity.projectId,IsActive:entity.active }),
   initiatives: entity => ({ Title:entity.name,AppId:entity.id,ProjectId:entity.projectId,AreaId:entity.areaId,Description:entity.description??"",SuccessCriteria:entity.successCriteria??"",Status:entity.status,OwnerUserId:entity.ownerUserId,OwnerUserIds:(entity.ownerUserIds??[entity.ownerUserId]).join(","),StartDate:entity.startDate,Deadline:entity.deadline||null,Impact:entity.impact }),

@@ -156,7 +156,7 @@ function verifyReferences(target:Record<TargetTable,Row[]>):string[]{
   const areaRows=new Map(target.areas.map(row=>[text(row.id),row]));
   const initiativeRows=new Map(target.initiatives.map(row=>[text(row.id),row]));
   const versionRows=new Map(target.versions.map(row=>[text(row.id),row]));
-  for(const row of target.projects){const area=areaRows.get(text(row.primary_area_id));if(!clients.has(text(row.client_id))||!area||text(area.project_id)!==text(row.id))errors.push(`projects:${text(row.id)}`)}
+  for(const row of target.projects){const clientId=text(row.client_id);const area=areaRows.get(text(row.primary_area_id));if((clientId!==""&&clientId!==null&&clientId!==undefined&&!clients.has(clientId))||!area||text(area.project_id)!==text(row.id))errors.push(`projects:${text(row.id)}`)}
   for(const row of target.areas)if(!projects.has(text(row.project_id)))errors.push(`areas:${text(row.id)}`);
   for(const row of target.project_members)if(!projects.has(text(row.project_id))||!profiles.has(text(row.profile_id)))errors.push(`project_members:${text(row.id)}`);
   for(const row of target.initiatives){const area=areaRows.get(text(row.area_id));if(!projects.has(text(row.project_id))||!area||text(area.project_id)!==text(row.project_id))errors.push(`initiatives:${text(row.id)}`)}

@@ -8,11 +8,11 @@ create or replace function gestion_trabajo.save_project_with_areas(
 ) returns jsonb language plpgsql security definer set search_path = gestion_trabajo, pg_temp as $$
 declare v_row gestion_trabajo.projects;v_primary_id text;
 begin
-  if not exists(select 1 from clients where id=p_record->>'client_id') then raise exception 'client_not_found'; end if;
+  if p_record->>'client_id' is not null and p_record->>'client_id' <> '' and not exists(select 1 from clients where id=p_record->>'client_id') then raise exception 'client_not_found'; end if;
   if p_expected_updated_at is null then
-    insert into projects(id,client_id,name,color,active,primary_area_id) values(p_record->>'id',p_record->>'client_id',p_record->>'name',p_record->>'color',(p_record->>'active')::boolean,null) returning * into v_row;
+    insert into projects(id,client_id,name,color,active,primary_area_id) values(p_record->>'id',nullif(p_record->>'client_id',''),p_record->>'name',p_record->>'color',(p_record->>'active')::boolean,null) returning * into v_row;
   else
-    update projects set client_id=p_record->>'client_id',name=p_record->>'name',color=p_record->>'color',active=(p_record->>'active')::boolean where id=p_record->>'id' and updated_at=p_expected_updated_at returning * into v_row;
+    update projects set client_id=nullif(p_record->>'client_id',''),name=p_record->>'name',color=p_record->>'color',active=(p_record->>'active')::boolean where id=p_record->>'id' and updated_at=p_expected_updated_at returning * into v_row;
     if not found then raise exception using errcode='PT409',message='project_concurrency_conflict'; end if;
   end if;
   insert into areas(id,project_id,name,active) select x.id,v_row.id,x.name,true from jsonb_to_recordset(p_areas) as x(id text,name text) on conflict(project_id,name) do update set active=true;

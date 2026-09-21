@@ -48,7 +48,7 @@ const priorities = ["Alta", "Media", "Baja"] as const;
 
 export const sharePointSchema: readonly SharePointListSchema[] = [
   { name: "CW_Projects", description: "Proyectos de Gestión de Trabajo", protected: true, columns: [
-    title("Project.name"), appId(), text("ID de cliente", "ClientId", "Project.clientId", true, true),
+    title("Project.name"), appId(), text("ID de cliente", "ClientId", "Project.clientId", false, true),
     text("Color", "ColorHex", "Project.color"), text("Área principal", "PrimaryArea", "Project.area", true, true),
     bool("Activo", "IsActive", "Project.active", true, "true"),
   ]},
