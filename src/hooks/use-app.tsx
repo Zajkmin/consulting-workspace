@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { initialData } from "@/data/mocks";
 import { localDataStore } from "@/services/storage";
-import { matchesCurrentUserName } from "@/lib/user-name-match";
 import type { AppData, DailyTaskOutcome, DeliverableVersion, Initiative, InitiativeBundle, Project, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
 import * as remoteActions from "@/app/actions/workspace";
 
@@ -25,7 +24,7 @@ export function AppProvider({children,authenticatedUser,initialWorkspace}:{child
   useEffect(()=>{if(authReady&&!remote)localDataStore.save(allData)},[allData,authReady,remote]);
   const currentUser=authenticatedUser ?? (remote?allData.user:allData.users.find(u=>u.id===currentUserId&&u.active)??null) ?? null;
   const allowed=currentUser?(currentUser.role==="admin"?allData.projects.map(p=>p.id):currentUser.assignedProjectIds):[];
-  const visibleTasks=useMemo(()=>{const projectScoped=allData.tasks.filter(t=>allowed.includes(t.projectId));if(!currentUser||currentUser.role!=="usuario")return projectScoped;return projectScoped.filter(t=>matchesCurrentUserName(currentUser.name,currentUser.email,t.assignedTo));},[allData.tasks,allowed,currentUser]);
+  const visibleTasks=useMemo(()=>{const projectScoped=allData.tasks.filter(t=>allowed.includes(t.projectId));if(!currentUser||currentUser.role!=="usuario")return projectScoped;return projectScoped.filter(t=>t.assignedProfileId===currentUser.id);},[allData.tasks,allowed,currentUser]);
   const visibleSchedule=useMemo(()=>allData.schedule.filter(b=>visibleTasks.some(t=>t.id===b.taskId)),[allData.schedule,visibleTasks]);
   const data=useMemo(()=>({...allData,user:currentUser??allData.user,projects:allData.projects.filter(p=>allowed.includes(p.id)),initiatives:allData.initiatives.filter(i=>allowed.includes(i.projectId)),versions:allData.versions.filter(v=>allData.initiatives.some(i=>i.id===v.initiativeId&&allowed.includes(i.projectId))),tasks:visibleTasks,schedule:visibleSchedule}),[allData,currentUser,allowed,visibleTasks,visibleSchedule]);
   const mutate=(fn:(d:AppData)=>AppData)=>setAllData(d=>fn(structuredClone(d)));

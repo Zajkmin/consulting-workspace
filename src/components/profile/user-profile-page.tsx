@@ -46,6 +46,7 @@ function applyTheme(theme: ThemeOption) {
 
 export function UserProfilePage() {
   const { currentUser, allData } = useApp();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
@@ -129,10 +130,10 @@ export function UserProfilePage() {
   const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!password || !confirmPassword) {
+    if (!currentPassword || !password || !confirmPassword) {
       setPasswordFeedback({
         type: "error",
-        message: "Completá ambos campos para cambiar la contraseña.",
+        message: "Completá la contraseña actual y la nueva contraseña para continuar.",
       });
       return;
     }
@@ -158,16 +159,30 @@ export function UserProfilePage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: ownEmail,
+        password: currentPassword,
+      });
 
-      if (error) {
+      if (signInError) {
         setPasswordFeedback({
           type: "error",
-          message: error.message || "No se pudo cambiar la contraseña.",
+          message: "La contraseña actual es incorrecta.",
         });
         return;
       }
 
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+
+      if (updateError) {
+        setPasswordFeedback({
+          type: "error",
+          message: updateError.message || "No se pudo cambiar la contraseña.",
+        });
+        return;
+      }
+
+      setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
       setPasswordFeedback({
@@ -278,6 +293,16 @@ export function UserProfilePage() {
 
         <form className="profile-form" onSubmit={handlePasswordChange}>
           <div className="profile-form-grid">
+            <label>
+              <span>Contraseña actual</span>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Ingresá tu contraseña actual"
+                autoComplete="current-password"
+              />
+            </label>
             <label>
               <span>Nueva contraseña</span>
               <input

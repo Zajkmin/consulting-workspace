@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
-import { matchesCurrentUserName } from "@/lib/user-name-match";
+import { isCurrentUserTaskForAgenda } from "@/lib/user-name-match";
 const priorityClass = (priority: "Alta" | "Media" | "Baja") =>
   priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
 const priorityOrder = { Alta: 0, Media: 1, Baja: 2 } as const;
@@ -19,10 +19,8 @@ export function DailyTaskPicker({
       () => new Set(dayBlocks.map((block) => block.taskId)),
     ),
     [query, setQuery] = useState(""),
-    isMine = (taskAssignedTo?: string | null) => {
-      if (!currentUser) return false;
-      return currentUser.role !== "usuario" || matchesCurrentUserName(currentUser.name, currentUser.email, taskAssignedTo);
-    },
+    isMine = (task?: { assignedProfileId?: string | null; assignedTo?: string | null } | null) =>
+      isCurrentUserTaskForAgenda(currentUser, task),
     tasks = data.tasks
       .filter((task) => {
         const project = data.projects.find((item) => item.id === task.projectId),
@@ -31,7 +29,7 @@ export function DailyTaskPicker({
           ),
           text =
             `${task.title} ${task.description} ${project?.name ?? ""} ${initiative?.name ?? ""} ${task.assignedTo}`.toLowerCase(),
-          mine = isMine(task.assignedTo);
+          mine = isMine(task);
         return (
           mine &&
           task.status !== "Completada" &&

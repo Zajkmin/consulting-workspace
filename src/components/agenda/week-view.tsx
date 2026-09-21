@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
 import { Modal } from "@/components/ui/modal";
-import { matchesCurrentUserName } from "@/lib/user-name-match";
+import { isCurrentUserTaskForAgenda } from "@/lib/user-name-match";
 import { DailyTaskPicker } from "./daily-task-picker";
 const names = [
   "Domingo",
@@ -18,15 +18,8 @@ export function WeekView() {
   const { data, currentUser, setBlockOutcome, deleteBlock } = useApp(),
     canManage =
       currentUser?.role === "admin" || currentUser?.permissions?.manageSchedule,
-    isCurrentUserTask = (task?: { assignedTo?: string | null } | null) => {
-      if (!task) return false;
-      if (currentUser?.role !== "usuario") return true;
-      return matchesCurrentUserName(
-        currentUser.name,
-        currentUser.email,
-        task.assignedTo,
-      );
-    },
+    isCurrentUserTask = (task?: { assignedProfileId?: string | null; assignedTo?: string | null } | null) =>
+      Boolean(task && isCurrentUserTaskForAgenda(currentUser, task)),
     visibleTasks = data.tasks.filter((task) => isCurrentUserTask(task)),
     [selectedDate, setSelectedDate] = useState<string | null>(null),
     [weekOffset, setWeekOffset] = useState(0),

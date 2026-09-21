@@ -5,8 +5,8 @@ export interface UserPermissions { manageUsers:boolean;manageProjects:boolean;ma
 export interface User { id:string; name:string; email:string; initials:string; role:UserRole; assignedProjectIds:string[]; editableProjectIds?:string[]; permissions?:UserPermissions; active:boolean; entraObjectId?:string; revision?:string }
 export interface Client { id: string; name: string }
 export interface Project { id:string; clientId:string; name:string; color:string; area:string; areas?:string[]; active:boolean; revision?:string }
-export interface Subtask { id: string; title: string; completed: boolean; assignedTo: string; completedAt?: string; revision?:string }
-export interface Task { id:string; projectId:string; initiativeId:string; versionId:string; title:string; description:string; priority:Priority; status:TaskStatus; deadline:string; estimatedMinutes:number; splittable:boolean; progress:number; assignedTo:string; dependencies:string[]; subtasks:Subtask[]; revision?:string }
+export interface Subtask { id: string; title: string; completed: boolean; assignedTo: string; assignedProfileId?: string; completedAt?: string; revision?:string }
+export interface Task { id:string; projectId:string; initiativeId:string; versionId:string; title:string; description:string; priority:Priority; status:TaskStatus; deadline:string; estimatedMinutes:number; splittable:boolean; progress:number; assignedTo:string; assignedProfileId?: string; dependencies:string[]; subtasks:Subtask[]; revision?:string }
 export interface DeliverableVersion { id:string; initiativeId:string; code:string; name:string; status:TaskStatus; owner:string; startDate:string; deadline:string; taskIds:string[]; validated?:boolean; revision?:string }
 export interface Initiative { id:string; projectId:string; name:string; description?:string; successCriteria?:string; area:string; status:TaskStatus; owner:string; owners?:string[]; startDate:string; deadline:string; impact:"Alto"|"Medio"|"Bajo"; versionIds:string[]; revision?:string }
 export interface InitiativeBundle { initiative:Initiative; version?:DeliverableVersion; tasks:Task[] }
