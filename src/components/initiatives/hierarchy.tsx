@@ -61,6 +61,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     [initiativeForm, setInitiativeForm] = useState(false),
     [versionForm, setVersionForm] = useState<string | null>(null),
     [areaForm, setAreaForm] = useState(false);
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(clearNotice, 3200);
@@ -354,12 +355,15 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                   </button>
                   <button
                     className="button primary compact"
-                    onClick={() => {
-                      saveHierarchy(draftI, draftV, draftT);
-                      setEditing(false);
+                    disabled={saving}
+                    onClick={async () => {
+                      setSaving(true);
+                      const saved = await saveHierarchy(draftI, draftV, draftT);
+                      setSaving(false);
+                      if (saved !== false) setEditing(false);
                     }}
                   >
-                    Guardar cambios
+                    {saving ? "Guardando…" : "Guardar cambios"}
                   </button>
                 </>
               ) : (

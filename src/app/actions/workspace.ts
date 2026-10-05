@@ -34,4 +34,66 @@ export async function saveUserAction(user:User,isNew:boolean){if(isSupabaseProvi
 export async function deleteUserAction(id:string){if(isSupabaseProvider())return supabase().deleteUser(id);const principal=await requireServerPermission("manageUsers");if(principal.appId===id)throw new Error("No podés eliminar tu propia cuenta.");const r=repos();await new SharePointRelationshipCrud(r).deleteUser(id);return refreshed()}
 export async function createInitiativeBundleAction(bundle:InitiativeBundle){if(isSupabaseProvider())return supabase().createInitiativeBundle(bundle);await requireProjectManager(bundle.initiative.projectId);const r=repos(),created=await buildInitiativeRecord(r,bundle.initiative,true);await r.initiatives.create(created);if(bundle.version){const version=bundle.version,versionRecord={id:cleanId(version.id),initiativeId:created.id,code:version.code,name:version.name,status:version.status,ownerUserId:await userIdByName(r,version.owner),startDate:version.startDate,deadline:version.deadline,validated:Boolean(version.validated)};await r.versions.create(versionRecord);for(const task of bundle.tasks)await r.tasks.create({id:cleanId(task.id),projectId:task.projectId,initiativeId:created.id,versionId:versionRecord.id,title:task.title,description:task.description,priority:task.priority,status:task.status,deadline:task.deadline,estimatedMinutes:task.estimatedMinutes,splittable:task.splittable,progress:task.progress,assignedUserId:await userIdByName(r,task.assignedTo)})}return refreshed()}
 
+type WorkspaceMutation =
+  | {type:"saveProject";project:Project;isNew:boolean}
+  | {type:"deleteProject";id:string}
+  | {type:"addArea";projectId:string;name:string}
+  | {type:"saveTask";task:Task;isNew:boolean}
+  | {type:"deleteTask";id:string}
+  | {type:"saveInitiative";initiative:Initiative;isNew:boolean}
+  | {type:"deleteInitiative";id:string}
+  | {type:"saveVersion";version:DeliverableVersion;isNew:boolean}
+  | {type:"deleteVersion";id:string}
+  | {type:"saveHierarchy";initiatives:Initiative[];versions:DeliverableVersion[];tasks:Task[]}
+  | {type:"toggleSubtask";taskId:string;subtaskId:string}
+  | {type:"saveBlock";block:ScheduleBlock;isNew:boolean}
+  | {type:"deleteBlock";id:string}
+  | {type:"savePreferences";preferences:WorkPreferences}
+  | {type:"setBlockOutcome";id:string;outcome:"planned"|"advanced"|"completed"}
+  | {type:"saveUser";user:User;isNew:boolean}
+  | {type:"deleteUser";id:string}
+  | {type:"createInitiativeBundle";bundle:InitiativeBundle};
 
+export type WorkspaceMutationResult = {ok:true;data:AppData}|{ok:false;message:string;errorId:string;data?:AppData};
+
+function mutationErrorMessage(error:unknown){
+  const raw=error instanceof Error?error.message:"";
+  if(raw==="FORBIDDEN")return "No tenés permisos para realizar este cambio.";
+  if(error instanceof Error&&error.name==="SupabaseConcurrencyError")return "Este registro cambió mientras lo estabas editando. Los datos se actualizaron; revisá el cambio e intentá guardarlo nuevamente.";
+  const allowed=["no existe","no se puede","no podés","seleccion","duplicad","inválid","falta configurar"];
+  if(raw&&allowed.some(fragment=>raw.toLocaleLowerCase("es").includes(fragment)))return raw;
+  return "No se pudo guardar el cambio. Intentá nuevamente; si continúa, informá el código del error.";
+}
+
+export async function runWorkspaceMutation(input:WorkspaceMutation):Promise<WorkspaceMutationResult>{
+  try{
+    let data:AppData;
+    switch(input.type){
+      case "saveProject":data=await saveProjectAction(input.project,input.isNew);break;
+      case "deleteProject":data=await deleteProjectAction(input.id);break;
+      case "addArea":data=await addAreaAction(input.projectId,input.name);break;
+      case "saveTask":data=await saveTaskAction(input.task,input.isNew);break;
+      case "deleteTask":data=await deleteTaskAction(input.id);break;
+      case "saveInitiative":data=await saveInitiativeAction(input.initiative,input.isNew);break;
+      case "deleteInitiative":data=await deleteInitiativeAction(input.id);break;
+      case "saveVersion":data=await saveVersionAction(input.version,input.isNew);break;
+      case "deleteVersion":data=await deleteVersionAction(input.id);break;
+      case "saveHierarchy":data=await saveHierarchyAction(input.initiatives,input.versions,input.tasks);break;
+      case "toggleSubtask":data=await toggleSubtaskAction(input.taskId,input.subtaskId);break;
+      case "saveBlock":data=await saveBlockAction(input.block,input.isNew);break;
+      case "deleteBlock":data=await deleteBlockAction(input.id);break;
+      case "savePreferences":data=await savePreferencesAction(input.preferences);break;
+      case "setBlockOutcome":data=await setBlockOutcomeAction(input.id,input.outcome);break;
+      case "saveUser":data=await saveUserAction(input.user,input.isNew);break;
+      case "deleteUser":data=await deleteUserAction(input.id);break;
+      case "createInitiativeBundle":data=await createInitiativeBundleAction(input.bundle);break;
+    }
+    return{ok:true,data};
+  }catch(error){
+    const errorId=randomUUID();
+    console.error(`[workspace-mutation:${errorId}]`,input.type,error);
+    let data:AppData|undefined;
+    try{data=await loadWorkspace()}catch(refreshError){console.error(`[workspace-mutation-refresh:${errorId}]`,refreshError)}
+    return{ok:false,message:mutationErrorMessage(error),errorId,data};
+  }
+}
