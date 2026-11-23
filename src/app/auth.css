@@ -2,11 +2,15 @@
 @media(max-width:800px){.login-page{grid-template-columns:1fr}.login-brand{display:none}.login-panel{padding:34px 22px}.users-row{grid-template-columns:minmax(210px,1fr) 115px 190px 85px 50px}.users-table{overflow:auto}.users-row{min-width:820px}}@media(max-width:650px){.topbar nav a{font-size:9px}.users-toolbar{align-items:flex-start;gap:25px}.users-toolbar h1{font-size:26px}.users-summary{gap:15px;flex-wrap:wrap}.users-list-head{align-items:flex-start;flex-direction:column;gap:12px}.user-search{width:100%}.project-assignment>div{grid-template-columns:1fr}.project-choice:nth-child(odd){border-right:0}}
 
 /* La imagen del hero y el logo oficial pertenecen al panel de marca. */
+.login-page--corporate {
+  --analytico-night: #000714;
+}
+
 .login-page--corporate .login-brand {
   gap: 36px;
   background:
     linear-gradient(135deg, rgb(0 7 20 / 91%) 5%, rgb(0 7 20 / 62%) 62%, rgb(0 7 20 / 70%)),
-    #000714 url('/hero-wave.webp') 60% center / cover no-repeat;
+    var(--analytico-night) url('/hero-wave.webp') 60% center / cover no-repeat;
 }
 
 .login-page--corporate .login-brand::after {
@@ -81,23 +85,28 @@
 
 .login-page--corporate .login-button {
   min-height: 46px;
-  background: #54EEF2;
-  color: #102338;
+  background: var(--analytico-night);
+  color: #fff;
   font-weight: 650;
 }
 
 .login-page--corporate .login-button:hover:enabled {
-  background: #35dbe1;
+  background: #17314a;
 }
 
 .login-page--corporate .login-button:disabled {
   cursor: wait;
-  opacity: 0.7;
+  background: #46576a;
+  opacity: 1;
 }
 
 .login-page--corporate .login-form :is(input, button):focus-visible {
   outline: 2px solid #004f76;
   outline-offset: 3px;
+}
+
+.login-page--corporate .login-form .login-button:focus-visible {
+  outline-color: var(--analytico-night);
 }
 
 .login-page--corporate .form-error {
