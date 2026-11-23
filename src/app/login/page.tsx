@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 import { resolveSupabaseServerPrincipal } from "@/services/auth/supabase-server-principal";
-import { createSupabaseServerClient } from "@/services/supabase/server";
+import { getSupabasePublicConfig } from "@/services/supabase/public-config";
 import { LoginForm } from "@/components/auth/login-form";
 
 export default async function LoginPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  try {
+    getSupabasePublicConfig();
+  } catch {
+    return <LoginForm initialError="El inicio de sesión tiene un problema de configuración." />;
+  }
 
-  if (!userError && userData.user?.id) {
-    const principal = await resolveSupabaseServerPrincipal();
-    if (principal) {
-      redirect("/");
-    }
+  if (await resolveSupabaseServerPrincipal()) {
+    redirect("/");
   }
 
   return <LoginForm />;

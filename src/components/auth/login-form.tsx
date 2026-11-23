@@ -1,56 +1,29 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/services/supabase/client";
+import Image from "next/image";
+import { useActionState, useState } from "react";
+import { loginAction } from "@/app/actions/auth";
 
-const unauthorized = "Correo o contraseña incorrectos.";
-
-export function LoginForm() {
-  const router = useRouter();
+export function LoginForm({ initialError = null }: { initialError?: string | null }) {
+  const [error, formAction, loading] = useActionState(loginAction, initialError);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const supabase = createSupabaseBrowserClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (signInError) {
-      setError(unauthorized);
-      setLoading(false);
-      return;
-    }
-
-    router.replace("/");
-    router.refresh();
-  }
 
   return (
-    <main className="login-page">
+    <main className="login-page login-page--corporate">
       <section className="login-brand">
         <div>
-          <span className="brand-mark large">G</span>
-          <p className="eyebrow">Gestión de Trabajo</p>
-          <h1>El trabajo importante,<br />en una sola dirección.</h1>
+          <Image className="login-brand-logo" src="/analytico-white.svg" width={480} height={106} alt="Analytico" />
+          <p className="eyebrow">Portal del Consultor</p>
+          <div className="login-brand-title">El trabajo importante,<br />en una sola dirección.</div>
           <p>Organizá proyectos, prioridades y tiempo sin perder de vista a tus clientes.</p>
         </div>
-        <small>Espacio de trabajo para equipos de consultoría</small>
+        <small>Espacio de trabajo para el equipo Analytico</small>
       </section>
 
       <section className="login-panel">
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" action={formAction}>
           <div>
-            <p className="eyebrow">Bienvenido</p>
-            <h2>Iniciar sesión</h2>
+            <h1>Iniciar sesión</h1>
             <p>Ingresá con tu cuenta para ver los proyectos que tenés asignados.</p>
           </div>
 
@@ -59,7 +32,7 @@ export function LoginForm() {
           <label>
             <span>Correo electrónico</span>
             <input
-              type="email"
+              type="email" name="email"
               value={email}
               onChange={event => setEmail(event.target.value)}
               required
@@ -70,9 +43,7 @@ export function LoginForm() {
           <label>
             <span>Contraseña</span>
             <input
-              type="password"
-              value={password}
-              onChange={event => setPassword(event.target.value)}
+              type="password" name="password"
               required
               autoComplete="current-password"
             />

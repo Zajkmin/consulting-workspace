@@ -1,0 +1,115 @@
+/* Identidad cromática Analytico. Solo colores: sin cambios de estructura o medidas. */
+:root {
+  --analytico-primary: #004f76;
+  --analytico-accent: #33809d;
+  --analytico-gray: #9d9d9c;
+  --analytico-tint: #eaf1f4;
+  --bg: #f6f8f9;
+  --surface: #ffffff;
+  --surface-secondary: #eaf1f4;
+  --ink: #1a1a1a;
+  --text: #1a1a1a;
+  --text-strong: #004f76;
+  --muted: #5f7178;
+  --line: #dce5e9;
+  --border: #dce5e9;
+  --soft: #f6f8f9;
+  --blue: #004f76;
+}
+
+[data-theme="dark"] {
+  --bg: #000714;
+  --surface: #02172b;
+  --surface-secondary: #003456;
+  --ink: #ffffff;
+  --text: #ffffff;
+  --text-strong: #ffffff;
+  --muted: #b6cbd5;
+  --line: #275f7f;
+  --border: #275f7f;
+  --soft: #003456;
+  --blue: #5ba4c2;
+  --analytico-tint: #003456;
+}
+
+.topbar { background: var(--surface); border-bottom-color: var(--line); }
+.brand, h1, .project-title, .entity-name b, .task-name { color: var(--text-strong); }
+.brand-mark, .primary, .summary-card.emphasis, .toast {
+  background: var(--analytico-primary);
+  color: #ffffff;
+}
+.summary-card.emphasis { border-color: var(--analytico-primary); }
+.summary-card.emphasis small { color: #eaf1f4; }
+.topbar nav a { color: var(--muted); }
+.topbar nav a.active, .table-controls button.active, .filters button.active {
+  background: var(--surface-secondary);
+  color: var(--text-strong);
+  border-color: var(--analytico-accent);
+}
+.quiet, input, select, textarea, .search, .week-navigation button,
+.tracking-select-wrap select, .project-gantt-button, .tiny {
+  background: var(--surface);
+  border-color: #9d9d9c;
+  color: var(--text);
+  accent-color: var(--analytico-primary);
+}
+.link-button, .edit-link, .crumb a, .week-navigation strong { color: var(--blue); }
+.avatar, .mini-avatar, .owner i, .owner-line i, .user-cell > i {
+  background: var(--surface-secondary);
+  color: var(--text-strong);
+}
+.eyebrow, .today, .section-title span, .project-card > small,
+.project-stats, .table-toolbar p, .table-controls, .empty,
+.empty b, label, .subtask-line small, .empty-small, .crumb,
+.account-menu small, .account-menu button, .users-summary,
+.users-list-head p, .user-cell small, .project-assignment > p,
+.project-choice small, .entity-name small, .muted-cell,
+.list-title p, .list-title > span, .pending-empty,
+.pending-row > strong small, .task-description,
+.day-label, .time-block time, .block-copy small,
+.duration, .focus-project small, .backlog-item small {
+  color: var(--muted);
+}
+.project-stats b, .day-label b, .project-choice b,
+.users-summary b, .empty b { color: var(--text); }
+.project-stats .late b, .overdue { color: var(--red); }
+.project-card, .table-wrap, .modal, .drawer, .account-menu,
+.users-row, .pending-row, .gantt-wrap, .initiative-lane,
+.detail-panel, .quick-task-modal, .side-card, .time-block,
+.pending-table .pending-row td, .pending-table .pending-row:hover td {
+  background: var(--surface);
+  border-color: var(--line);
+}
+th, .users-head, .hierarchy-head, .subtask-head, .week-head,
+.gantt-header, .project-row, .summary-card, .stat-box,
+.version-row, .version-code, .close, .duration, .meta-chip,
+.assignment-cell small, .ai-note, .quick-task-meta span {
+  background: var(--surface-secondary);
+  color: var(--muted);
+  border-color: var(--line);
+}
+td, .entity, .versions, .subtasks-block, .subtask-row,
+.subtask-line, .day, .day-label, .focus-project, .backlog-item,
+.gantt-corner, .month-tick, .project-section, .project-label,
+.initiative-row, .initiative-label, .detail-grid, .task-row {
+  border-color: var(--line);
+}
+tbody tr:hover, .project-card:hover, .users-row:not(.users-head):hover,
+.pending-row:hover, .project-gantt-button:hover {
+  background: var(--surface-secondary);
+  border-color: var(--analytico-accent);
+}
+.filters button, .drawer-actions { background: var(--surface); color: var(--text); }
+.en-curso, .role-pill.admin, .impact {
+  background: var(--surface-secondary);
+  color: var(--blue);
+}
+.role-pill, .baja, .pendiente { background: var(--soft); color: var(--muted); }
+.progress > i { background: var(--line); }
+.progress > i b { background: var(--analytico-accent); }
+.version-bar.selected { outline-color: var(--analytico-primary); }
+.login-page, .login-panel { background: var(--surface); }
+.login-brand { background: #004f76; color: #ffffff; }
+.login-brand .eyebrow, .login-brand p:not(.eyebrow), .login-brand > small { color: #eaf1f4; }
+.login-form > div:first-child > p:last-child, .demo-access, .demo-access b { color: var(--muted); }
+/* Conserva los colores semánticos y los colores asignados a cada proyecto. */
