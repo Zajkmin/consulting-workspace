@@ -1,6 +1,7 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { useConfirmedSave } from "@/hooks/use-confirmed-save";
 const today = new Date().toISOString().slice(0, 10);
 const defaultEnd = new Date(Date.now() + 14 * 86400000)
   .toISOString()
@@ -12,7 +13,7 @@ export function VersionForm({
   initiativeId: string;
   onDone: () => void;
 }) {
-  const savingRef = useRef(false);
+  const { save, saving } = useConfirmedSave(onDone);
   const { data, addVersion } = useApp(),
     existing = data.versions.filter((v) => v.initiativeId === initiativeId),
     initiative = data.initiatives.find((item) => item.id === initiativeId),
@@ -28,33 +29,23 @@ export function VersionForm({
     [startDate, setStartDate] = useState(today),
     [deadline, setDeadline] = useState(defaultEnd),
     [owner, setOwner] = useState(data.user.name),
-    [error, setError] = useState(""),
-    [saving, setSaving] = useState(false);
-  const submit = async () => {
-    if (savingRef.current) return;
+    [error, setError] = useState("");
+  const submit = () => {
     if (deadline < startDate) {
       setError("La fecha fin no puede ser anterior a la fecha de inicio.");
       return;
     }
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      const saved = await addVersion({
-        id: crypto.randomUUID(),
-        initiativeId,
-        code,
-        name,
-        status: "Pendiente",
-        owner,
-        startDate,
-        deadline,
-        taskIds: [],
-      });
-      if (saved !== false) onDone();
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
+    void save(() => addVersion({
+      id: crypto.randomUUID(),
+      initiativeId,
+      code,
+      name,
+      status: "Pendiente",
+      owner,
+      startDate,
+      deadline,
+      taskIds: [],
+    }));
   };
   return (
     <form

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runConfirmedSave, settleWorkspaceSave } from "./workspace-feedback.ts";
+import { dismissWhenIdle, runConfirmedSave, settleWorkspaceSave } from "./workspace-feedback.ts";
 
 test("el éxito se anuncia solo después de aplicar la respuesta del servidor", async () => {
   let resolve!: (result: { ok: true; data: number }) => void;
@@ -38,4 +38,20 @@ test("ignora el doble envío y conserva el diálogo abierto ante un fallo", asyn
   assert.deepEqual(events, [true, false]);
   await runConfirmedSave(lock, () => true, pending, close);
   assert.deepEqual(events, [true, false, true, "cerrado", false]);
+});
+
+test("bloquea el cierre manual hasta recibir la respuesta y lo habilita después de un error", async () => {
+  const lock = { current: false };
+  let resolve!: (saved: boolean) => void;
+  const response = new Promise<boolean>(done => { resolve = done; });
+  const events: string[] = [];
+  const saving = runConfirmedSave(lock, () => response, () => undefined, () => events.push("guardado"));
+  const dismiss = () => dismissWhenIdle(lock, () => events.push("cerrado"));
+
+  dismiss();
+  assert.deepEqual(events, []);
+  resolve(false);
+  await saving;
+  dismiss();
+  assert.deepEqual(events, ["cerrado"]);
 });

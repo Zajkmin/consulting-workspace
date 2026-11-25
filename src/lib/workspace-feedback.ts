@@ -42,3 +42,7 @@ export async function runConfirmedSave(
     showPending(false);
   }
 }
+
+export function dismissWhenIdle(pending: { current: boolean }, onClose: () => void): void {
+  if (!pending.current) onClose();
+}
