@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useApp } from "@/hooks/use-app";
+import { taskAssigneeLabel } from "@/lib/task-assignees";
 import type { Task } from "@/types";
 
 export function QuickTaskAction({ task, onClose }: { task: Task | null; onClose: () => void }) {
@@ -38,7 +39,7 @@ export function QuickTaskAction({ task, onClose }: { task: Task | null; onClose:
         <h2 id="quick-task-title">{task.title}</h2>
         <p className="quick-task-context">{initiative?.name ?? "Sin iniciativa"}{version ? ` · ${version.code}` : ""}</p>
         <div className="quick-task-meta">
-          <span>{task.assignedTo}</span>
+          <span>{taskAssigneeLabel(task, data.users)}</span>
           <span>{task.progress}% de avance</span>
           <span>{task.subtasks.length} subtareas</span>
         </div>

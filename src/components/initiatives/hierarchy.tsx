@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, @typescript-eslint/no-unused-expressions */
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { taskAssigneeLabel, taskAssigneeNames } from "@/lib/task-assignees";
 import { useApp } from "@/hooks/use-app";
 import {
   effectiveInitiativeStatus,
@@ -100,13 +101,13 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       ...new Set(all.flatMap((i) => (i.owners?.length ? i.owners : [i.owner]))),
     ].sort(),
     versionOwnerOptions = [...new Set(sourceV.map((v) => v.owner))].sort(),
-    taskOwnerOptions = [...new Set(sourceT.map((t) => t.assignedTo))].sort(),
+    taskOwnerOptions = [...new Set(sourceT.flatMap((t) => taskAssigneeNames(t, data.users)))].sort(),
     visibleTasks = (versionId: string) =>
       sourceT.filter(
         (task) =>
           task.versionId === versionId &&
           (filters.taskOwner === "all" ||
-            task.assignedTo === filters.taskOwner),
+            taskAssigneeNames(task, data.users).includes(filters.taskOwner)),
       ),
     visibleVersions = (initiativeId: string) =>
       sourceV.filter(
@@ -703,7 +704,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                         <span className="task-description">
                                           {t.description || "Sin descripción"}
                                         </span>
-                                        <Owners names={[t.assignedTo]} />
+                                        <Owners names={[taskAssigneeLabel(t, data.users)]} />
                                         <span>{taskProgress(t)}%</span>
                                       </div>
                                     ),

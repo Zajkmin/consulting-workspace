@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useApp } from "@/hooks/use-app";
 import { effectiveInitiativeStatus, effectiveVersionStatus, initiativeProgress } from "@/lib/format";
+import { taskAssigneeLabel } from "@/lib/task-assignees";
 import type { TaskStatus } from "@/types";
 
 const statusClass: Record<TaskStatus, string> = {
@@ -102,8 +103,7 @@ export function SummaryPage({ projectId }: { projectId?: string }) {
               <tbody>
                 {pendingTasks.map((task) => {
                   const initiative = initiatives.find((item) => item.id === task.initiativeId);
-                  const owner = allData.users.find((user) => user.id === task.assignedTo);
-                  return <tr key={task.id}><td><strong>{task.title}</strong></td><td>{initiative?.name ?? "Sin iniciativa"}</td><td><span className={statusClass[task.status]}>{statusLabel(task.status)}</span></td><td>{owner?.name ?? "Sin asignar"}</td><td>{formatDate(task.deadline)}</td><td><div className="summary-task-progress"><i style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div></td></tr>;
+                  return <tr key={task.id}><td><strong>{task.title}</strong></td><td>{initiative?.name ?? "Sin iniciativa"}</td><td><span className={statusClass[task.status]}>{statusLabel(task.status)}</span></td><td>{taskAssigneeLabel(task, allData.users)}</td><td>{formatDate(task.deadline)}</td><td><div className="summary-task-progress"><i style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div></td></tr>;
                 })}
               </tbody>
             </table>
