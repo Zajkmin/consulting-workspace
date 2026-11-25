@@ -47,13 +47,77 @@ export function assembleWorkspace(source: MappedWorkspaceLists,currentUserId?:st
   source.taskDependencies.forEach(dep=>{if(!source.tasks.some(task=>task.id===dep.taskId)||!source.tasks.some(task=>task.id===dep.dependsOnTaskId))issue("CW_TaskDependencies","Una dependencia referencia una tarea inexistente.")});
   source.scheduleBlocks.forEach(block=>{if(!usersById.has(block.userId))issue("CW_ScheduleBlocks","Un bloque referencia un usuario inexistente.");if(!source.tasks.some(task=>task.id===block.taskId))issue("CW_ScheduleBlocks","Un bloque referencia una tarea inexistente.")});
 
-  const currentUser=(currentUserId?users.find(user=>user.id===currentUserId&&user.active):undefined)??users.find(user=>user.active&&user.role==="admin")??users.find(user=>user.active)??users[0];
-  if(!currentUser)return{data:null,relationErrors};
-  const preferences=source.workPreferences.find(item=>item.userId===currentUser.id)??{dayStart:"08:30",dayEnd:"17:30",workingDays:[1,2,3,4,5],focusBlockMinutes:90,revision:undefined};
-  const allowed=currentUser.role==="admin"?new Set(projects.map(project=>project.id)):new Set(currentUser.assignedProjectIds);
-  const visibleProjects=projects.filter(project=>allowed.has(project.id));
-  const visibleInitiatives=initiatives.filter(item=>allowed.has(item.projectId));
-  const visibleVersions=versions.filter(item=>visibleInitiatives.some(initiative=>initiative.id===item.initiativeId));
-  const visibleTasks=tasks.filter(item=>allowed.has(item.projectId));
-  return{data:{user:currentUser,users,clients:source.clients,projects:visibleProjects,initiatives:visibleInitiatives,versions:visibleVersions,tasks:visibleTasks,schedule:source.scheduleBlocks.filter(block=>block.userId===currentUser.id&&visibleTasks.some(task=>task.id===block.taskId)).map(block=>({id:block.id,taskId:block.taskId,date:block.date,startTime:block.startTime,endTime:block.endTime,source:block.source,completed:block.completed,completedAt:block.completedAt,outcome:block.outcome,revision:block.revision})),workPreferences:{dayStart:preferences.dayStart,dayEnd:preferences.dayEnd,workingDays:preferences.workingDays,focusBlockMinutes:preferences.focusBlockMinutes,revision:preferences.revision}},relationErrors};
+  const currentUser = currentUserId !== undefined
+    ? users.find(user => user.id === currentUserId && user.active)
+    : users.find(user => user.active && user.role === "admin") ?? users.find(user => user.active) ?? users[0];
+  if (!currentUser) return { data: null, relationErrors };
+
+  const preferences = source.workPreferences.find(item => item.userId === currentUser.id)
+    ?? { dayStart: "08:30", dayEnd: "17:30", workingDays: [1, 2, 3, 4, 5], focusBlockMinutes: 90, revision: undefined };
+  const admin = currentUser.role === "admin";
+  const allowed = new Set(currentUser.assignedProjectIds);
+  const visibleProjects = admin ? projects : projects.filter(project => allowed.has(project.id));
+  const visibleInitiatives = admin ? initiatives : initiatives.filter(item => allowed.has(item.projectId));
+  const initiativeIds = new Set(visibleInitiatives.map(item => item.id));
+  const visibleVersions = versions.filter(item => initiativeIds.has(item.initiativeId));
+  const visibleTasks = admin ? tasks : tasks.filter(item => allowed.has(item.projectId));
+  const taskIds = new Set(visibleTasks.map(task => task.id));
+  const clientIds = new Set(visibleProjects.map(project => project.clientId));
+
+  let visibleUsers = users;
+  if (!admin) {
+    const team = new Set([currentUser.id]);
+    for (const member of source.projectMembers) {
+      if (allowed.has(member.projectId)) team.add(member.userId);
+    }
+    for (const initiative of source.initiatives) {
+      if (initiativeIds.has(initiative.id)) {
+        for (const owner of [initiative.ownerUserId, ...(initiative.ownerUserIds ?? [])]) team.add(owner);
+      }
+    }
+    for (const version of source.versions) {
+      if (initiativeIds.has(version.initiativeId)) team.add(version.ownerUserId);
+    }
+    for (const task of visibleTasks) {
+      if (task.assignedProfileId) team.add(task.assignedProfileId);
+      for (const subtask of task.subtasks) {
+        if (subtask.assignedProfileId) team.add(subtask.assignedProfileId);
+      }
+    }
+
+    visibleUsers = users
+      .filter(user => team.has(user.id) || (currentUser.role === "gestor" && user.role === "admin"))
+      .map(user => ({
+        ...user,
+        email: team.has(user.id) ? user.email : "",
+        entraObjectId: user.id === currentUser.id ? user.entraObjectId : undefined,
+        assignedProjectIds: user.assignedProjectIds.filter(projectId => allowed.has(projectId)),
+        editableProjectIds: user.editableProjectIds.filter(projectId => allowed.has(projectId)),
+      }));
+  }
+
+  const schedule = source.scheduleBlocks
+    .filter(block => block.userId === currentUser.id && taskIds.has(block.taskId))
+    .map(({ id, taskId, date, startTime, endTime, source, completed, completedAt, outcome, revision }) => ({ id, taskId, date, startTime, endTime, source, completed, completedAt, outcome, revision }));
+
+  return {
+    data: {
+      user: currentUser,
+      users: visibleUsers,
+      clients: admin ? source.clients : source.clients.filter(client => clientIds.has(client.id)),
+      projects: visibleProjects,
+      initiatives: visibleInitiatives,
+      versions: visibleVersions,
+      tasks: visibleTasks,
+      schedule,
+      workPreferences: {
+        dayStart: preferences.dayStart,
+        dayEnd: preferences.dayEnd,
+        workingDays: preferences.workingDays,
+        focusBlockMinutes: preferences.focusBlockMinutes,
+        revision: preferences.revision,
+      },
+    },
+    relationErrors,
+  };
 }
