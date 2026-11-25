@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-unused-expressions */
 import{useConfirmedSave}from"@/hooks/use-confirmed-save";
 import{useState}from"react";import{useApp}from"@/hooks/use-app";import type{Project}from"@/types";
 const colors=["#aa6a55","#4f806d","#6a6fae","#9a792c","#5d7f9a","#8b647d"];

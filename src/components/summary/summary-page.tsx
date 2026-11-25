@@ -43,7 +43,7 @@ export function SummaryPage({ projectId }: { projectId?: string }) {
 
   const cards = [
     { label: "Tareas completadas", value: `${taskCounts.Completada}/${tasks.length}`, detail: `${pendingTasks.length} tareas abiertas`, tone: "green" },
-    { label: "Versiones en curso", value: `${versionCounts["En curso"]}/${versions.length}`, detail: `${versionCounts.Pendiente} sin iniciar`, tone: "blue" },
+    { label: "Versiones en curso", value: `${versionCounts["En curso"]}/${versions.length}`, detail: `${versionCounts.Pendiente} pendientes`, tone: "blue" },
     { label: "Iniciativas completadas", value: `${initiativeCounts.Completada}/${initiatives.length}`, detail: `${initiatives.length - initiativeCounts.Completada} iniciativas abiertas`, tone: "ink" },
     { label: "% de avance general", value: `${generalProgress}%`, detail: "avance de las iniciativas", tone: "orange" },
     { label: "Versiones atrasadas", value: versionCounts.Retrasada, detail: "con atraso registrado o calculado", tone: "late" },

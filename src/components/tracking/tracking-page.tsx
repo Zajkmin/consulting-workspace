@@ -230,7 +230,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
           <strong>{summary.inProgress}</strong>
         </div>
         <div className="summary-card">
-          <small>Sin iniciar</small>
+          <small>Pendientes</small>
           <strong>{summary.pending}</strong>
         </div>
         <div className="summary-card">
