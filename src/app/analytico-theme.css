@@ -110,42 +110,622 @@ tbody tr:hover, .project-card:hover, .users-row:not(.users-head):hover,
 .login-brand { background: #004f76; color: #ffffff; }
 .login-brand .eyebrow, .login-brand p:not(.eyebrow), .login-brand > small { color: #eaf1f4; }
 .login-form > div:first-child > p:last-child, .demo-access, .demo-access b { color: var(--muted); }
-/* Conserva los colores semánticos y los colores asignados a cada proyecto. */
 
-.topbar {
-  --topbar-blue: #003456;
-  --topbar-highlight: #54eef2;
-  background: var(--topbar-blue);
-  border-bottom-color: rgb(255 255 255 / 16%);
+/* Identidad de las vistas internas. El portal comparte la hoja con el acceso;
+   los tokens de la propuesta solo se activan cuando se monta la barra. */
+/* 1. Tokens ---------------------------------------------------------------- */
+html:has(.topbar) {
+  /* Marca (web oficial) */
+  --an-navy: #004f76;        /* acción primaria, enlaces, texto activo */
+  --an-navy-deep: #003456;   /* barra superior, hover de primario */
+  --an-navy-ink: #002a45;    /* presionado */
+  --an-blue: #275f7f;        /* énfasis secundario, "En curso" */
+  --an-teal: #33809d;        /* acento: progreso, foco, bordes seleccionados */
+  --an-sky: #5ba4c2;         /* acento sobre fondo oscuro */
+  --an-cyan: #54eef2;        /* solo sobre la barra navy (indicador activo) */       /* azul noche de la web: barra superior */
+  --an-heading: #003456;     /* títulos de página */
+
+  /* Neutros */
+  --an-bg: #f6f8f9;          /* fondo de página (fog) */
+  --an-surface: #ffffff;     /* tarjetas, tablas, modales */
+  --an-surface-2: #eaf1f4;   /* encabezados de tabla, superficies secundarias (mist) */
+  --an-surface-3: #f3f7f9;   /* hover de filas */
+  --an-surface-done: #f1f5f7;/* filas completadas */
+  --an-line: #dce5e9;        /* bordes de contenedores */
+  --an-line-soft: #e9eff2;   /* separadores de filas */
+  --an-line-strong: #c3d3db; /* bordes de botones secundarios */
+  --an-control: #7f949e;     /* borde de campos (3:1 sobre blanco) */
+  --an-text: #1a1a1a;
+  --an-muted: #586a72;       /* texto secundario (4.9:1 sobre mist) */
+  --an-th: #3f5866;          /* encabezados de tabla */
+  --an-overlay: rgb(0 26 46 / 45%);
+  --an-shadow-float: 0 18px 50px rgb(0 42 69 / 18%);
+  --an-shadow-hover: 0 6px 18px rgb(0 52 86 / 8%);
+
+  /* Estados (texto sobre su fondo >= 4.5:1) */
+  --st-pend-bg: #eef2f4;  --st-pend: #4d5d64;
+  --st-curso-bg: #e3f0f6; --st-curso: #1d5f80;
+  --st-rev-bg: #fdf1d8;   --st-rev: #845a00;
+  --st-ok-bg: #e2f2ea;    --st-ok: #1e6a4b;
+  --st-late-bg: #fbe7e4;  --st-late: #a4332b;
+  /* Barras del Gantt (texto >= 4.5:1; blanco salvo En revisión) */
+  --bar-pend: #66777f; --bar-curso: #275f7f; --bar-rev: #e2ad3b; --bar-rev-text: #3a2800; --bar-ok: #1e6a4b; --bar-late: #a4332b;
+  /* Tintes de fila por prioridad (se conservan, armonizados) */
+  --tint-alta: #fdf3f2; --tint-alta-h: #fbe9e7;
+  --tint-media: #fdf8ec; --tint-media-h: #fbf1d9;
+  --tint-baja: #f1f8f4; --tint-baja-h: #e6f3ec;
+  --st-bajo-bg: #e6f3ec; --st-bajo: #2f6e4a;
+
+  /* Alias que ya usa la app (mismos nombres, nuevos valores) */
+  --analytico-primary: var(--an-navy);
+  --analytico-accent: var(--an-teal);
+  --analytico-tint: var(--an-surface-2);
+  --bg: var(--an-bg);
+  --surface: var(--an-surface);
+  --surface-secondary: var(--an-surface-2);
+  --ink: var(--an-text);
+  --text: var(--an-text);
+  --text-strong: var(--an-heading);
+  --muted: var(--an-muted);
+  --line: var(--an-line);
+  --border: var(--an-line);
+  --soft: var(--an-bg);
+  --blue: var(--an-link);
+  --red: var(--an-late-text);
+  --green: var(--an-success-text);
+  --amber: var(--an-warning-text);
+  --shadow: var(--an-shadow-float);
+  --an-link: var(--an-navy);
+  --an-link-strong: var(--an-navy-deep);
+  --an-placeholder: #586a72;
+  --an-done-hover: #e9f0f3;
+  --an-toolbar: rgb(246 248 249 / 96%);
+  --an-late-text: var(--st-late);
+  --an-warning-text: var(--st-rev);
+  --an-success-text: var(--st-ok);
 }
 
-.topbar .brand {
-  color: #fff;
+/* Tema oscuro existente: se alinea a la paleta nocturna de la web */
+html[data-theme="dark"]:has(.topbar) {
+  --an-bg: #000714;
+  --an-surface: #02172b;
+  --an-surface-2: #003456;
+  --an-surface-3: #0a2840;
+  --an-surface-done: #06203a;
+  --an-line: #1d4a66;
+  --an-line-soft: #123a55;
+  --an-line-strong: #275f7f;
+  --an-control: #6c9db7;
+  --an-text: #ffffff;
+  --an-muted: #b6cbd5;
+  --an-th: #cfe0e8;
+  --an-heading: #ffffff;
+  --an-blue: #8cc3d9;
+  --an-teal: #5ba4c2;
+  --an-link: var(--an-sky);
+  --an-link-strong: #c4e5f1;
+  --an-placeholder: var(--an-muted);
+  --an-done-hover: #0a2840;
+  --an-toolbar: rgb(2 23 43 / 96%);
+  --an-overlay: rgb(0 7 20 / 68%);
+  --an-shadow-float: 0 24px 70px rgb(2 6 23 / 45%);
+  --an-late-text: #ffaaa3;
+  --an-warning-text: #f8cd75;
+  --an-success-text: #92d9b6;
+  --tint-alta: #351d32;
+  --tint-alta-h: #44243a;
+  --tint-media: #302821;
+  --tint-media-h: #3d3021;
+  --tint-baja: #123333;
+  --tint-baja-h: #1a4040;
 }
 
-.topbar nav a {
-  color: #d6e6ed;
+/* 2. Base ------------------------------------------------------------------- */
+:where(body:has(.topbar)) h1,
+:where(body:has(.topbar)) .summary-header h1,
+:where(body:has(.topbar)) .tracking-header h1,
+:where(body:has(.topbar)) .profile-summary-meta h1 { color: var(--an-heading); }
+:where(body:has(.topbar)) .detail-header h2,
+:where(body:has(.topbar)) .section-title-row h2 { color: var(--an-heading); }
+:where(body:has(.topbar)) .eyebrow,
+:where(body:has(.topbar)) .detail-eyebrow,
+:where(body:has(.topbar)) .summary-section-heading .eyebrow { color: var(--an-blue); }
+:where(body:has(.topbar)) .subtle,
+:where(body:has(.topbar)) .today,
+:where(body:has(.topbar)) .section-title span,
+:where(body:has(.topbar)) .table-toolbar p,
+:where(body:has(.topbar)) .list-title p,
+:where(body:has(.topbar)) .list-title > span,
+:where(body:has(.topbar)) .master-actions > span,
+:where(body:has(.topbar)) .section-actions > span,
+:where(body:has(.topbar)) .summary-actions,
+:where(body:has(.topbar)) .summary-subtitle,
+:where(body:has(.topbar)) .week-summary > small,
+:where(body:has(.topbar)) .picker-help,
+:where(body:has(.topbar)) .form-hint,
+:where(body:has(.topbar)) .role-explanation span,
+:where(body:has(.topbar)) .responsible-picker > p,
+:where(body:has(.topbar)) .permission-block > p,
+:where(body:has(.topbar)) .project-assignment > p,
+:where(body:has(.topbar)) .users-list-head p,
+:where(body:has(.topbar)) .users-summary,
+:where(body:has(.topbar)) .crumb,
+:where(body:has(.topbar)) .empty,
+:where(body:has(.topbar)) .empty-picker,
+:where(body:has(.topbar)) .empty-readonly,
+:where(body:has(.topbar)) .summary-empty,
+:where(body:has(.topbar)) .empty-state p,
+:where(body:has(.topbar)) .empty-state-light,
+:where(body:has(.topbar)) .pending-empty,
+:where(body:has(.topbar)) .muted-cell,
+:where(body:has(.topbar)) .validation-cell,
+:where(body:has(.topbar)) .summary-progress-panel > div:first-child,
+:where(body:has(.topbar)) .task-copy small,
+:where(body:has(.topbar)) .initiative-label small,
+:where(body:has(.topbar)) .project-rate,
+:where(body:has(.topbar)) .stat-box small,
+:where(body:has(.topbar)) .donut-wrap small,
+:where(body:has(.topbar)) .summary-card small,
+:where(body:has(.topbar)) .summary-kpi small,
+:where(body:has(.topbar)) .summary-kpi span,
+:where(body:has(.topbar)) .summary-section-heading > span,
+:where(body:has(.topbar)) .quick-task-context,
+:where(body:has(.topbar)) .quick-task-meta,
+:where(body:has(.topbar)) .tracking-select-wrap span { color: var(--an-muted); }
+:where(body:has(.topbar)) label,
+:where(body:has(.topbar)) .color-field legend { color: var(--an-th); }
+:where(body:has(.topbar)) .empty b,
+:where(body:has(.topbar)) .empty-state b { color: var(--an-heading); }
+:where(body:has(.topbar)) ::selection { background: rgb(51 128 157 / 22%); }
+
+/* Foco visible en toda la app (solo outline: no altera el layout) */
+:where(body:has(.topbar)) :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--an-teal);
+  outline-offset: 2px;
 }
 
-.topbar nav a:hover,
-.topbar nav a.active,
-.topbar :is(.contextual, .avatar):hover {
-  background: #194b6a;
-  color: #fff;
+/* 3. Barra superior y menú de cuenta ---------------------------------------- */
+:where(body:has(.topbar)) .topbar {
+  background:
+    var(--an-navy);
+  border-bottom-color: rgb(84 238 242 / 22%);
+  box-shadow: none;
+}
+:where(body:has(.topbar)) .topbar .brand,
+:where(body:has(.topbar)) .topbar .topbar-brand-name { color: #fff; }
+:where(body:has(.topbar)) .topbar nav a { color: #d6e6ed; background: transparent; }
+:where(body:has(.topbar)) .topbar nav a:hover { background: rgb(255 255 255 / 8%); color: #fff; }
+:where(body:has(.topbar)) .topbar nav a.active { background: rgb(255 255 255 / 12%); color: #fff; box-shadow: inset 0 -2px var(--an-cyan); }
+:where(body:has(.topbar)) .topbar .button.contextual { background: #fff; border-color: #fff; color: var(--an-navy-deep); box-shadow: none; }
+:where(body:has(.topbar)) .topbar .button.contextual:hover { background: #eaf1f4; border-color: #eaf1f4; color: var(--an-navy-deep); }
+:where(body:has(.topbar)) .topbar .avatar { background: rgb(255 255 255 / 10%); color: #fff; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 45%); }
+:where(body:has(.topbar)) .topbar .avatar:hover { background: rgb(255 255 255 / 18%); }
+:where(body:has(.topbar)) .topbar :is(.brand, nav a, .contextual, .avatar):focus-visible { outline: 2px solid var(--an-cyan); outline-offset: 3px; }
+:where(body:has(.topbar)) .account-menu { background: var(--an-surface); border-color: var(--an-line); box-shadow: var(--an-shadow-float); }
+:where(body:has(.topbar)) .account-menu b { color: var(--an-heading); }
+:where(body:has(.topbar)) .account-menu small { color: var(--an-muted); }
+:where(body:has(.topbar)) .account-menu a,
+:where(body:has(.topbar)) .account-menu button { color: var(--an-link); }
+:where(body:has(.topbar)) .account-menu a:hover,
+:where(body:has(.topbar)) .account-menu button:hover { background: var(--an-surface-2); color: var(--an-link-strong); }
+
+/* 4. Botones ---------------------------------------------------------------- */
+:where(body:has(.topbar)) .primary,
+:where(body:has(.topbar)) .button.primary,
+:where(body:has(.topbar)) .project-summary-button {
+  background: var(--an-navy); color: #fff; border-color: var(--an-navy);
+}
+:where(body:has(.topbar)) .primary:hover,
+:where(body:has(.topbar)) .button.primary:hover,
+:where(body:has(.topbar)) .project-summary-button:hover { background: var(--an-navy-deep); border-color: var(--an-navy-deep); }
+:where(body:has(.topbar)) .primary:active,
+:where(body:has(.topbar)) .button.primary:active { background: var(--an-navy-ink); }
+:where(body:has(.topbar)) .primary:disabled,
+:where(body:has(.topbar)) .button.primary:disabled { background: #9fb4be; border-color: #9fb4be; color: #102338; }
+:where(body:has(.topbar)) .quiet,
+:where(body:has(.topbar)) .button.quiet,
+:where(body:has(.topbar)) .summary-action,
+:where(body:has(.topbar)) .project-gantt-button,
+:where(body:has(.topbar)) .week-navigation button,
+:where(body:has(.topbar)) .tiny,
+:where(body:has(.topbar)) .outcome-actions button {
+  background: var(--an-surface); color: var(--an-link-strong); border-color: var(--an-line-strong); box-shadow: none;
+}
+:where(body:has(.topbar)) .quiet:hover,
+:where(body:has(.topbar)) .button.quiet:hover,
+:where(body:has(.topbar)) .summary-action:hover,
+:where(body:has(.topbar)) .project-gantt-button:hover,
+:where(body:has(.topbar)) .week-navigation button:hover:not(:disabled),
+:where(body:has(.topbar)) .tiny:hover,
+:where(body:has(.topbar)) .outcome-actions button:hover {
+  background: var(--an-surface-2); border-color: var(--an-teal); color: var(--an-link-strong);
+}
+:where(body:has(.topbar)) .week-navigation button:disabled { color: #8a9ba2; background: var(--an-bg); }
+:where(body:has(.topbar)) .link-button,
+:where(body:has(.topbar)) .edit-link,
+:where(body:has(.topbar)) .crumb a,
+:where(body:has(.topbar)) .clear-filters,
+:where(body:has(.topbar)) .add-version,
+:where(body:has(.topbar)) .add-subtask,
+:where(body:has(.topbar)) .manage-projects em,
+:where(body:has(.topbar)) .week-navigation strong,
+:where(body:has(.topbar)) .initiative-task-draft button,
+:where(body:has(.topbar)) .task-subtasks-editor button { color: var(--an-link); }
+:where(body:has(.topbar)) .link-button:hover,
+:where(body:has(.topbar)) .edit-link:hover,
+:where(body:has(.topbar)) .crumb a:hover,
+:where(body:has(.topbar)) .clear-filters:hover,
+:where(body:has(.topbar)) .add-version:hover,
+:where(body:has(.topbar)) .add-subtask:hover { color: var(--an-blue); text-decoration: underline; }
+:where(body:has(.topbar)) .add-version { background: var(--an-bg); }
+:where(body:has(.topbar)) .danger-button { background: var(--an-surface); border-color: #e8c7c3; color: var(--an-late-text); }
+:where(body:has(.topbar)) .danger-button:hover { background: var(--st-late-bg); border-color: var(--st-late); color: var(--st-late); }
+:where(body:has(.topbar)) .inline-delete,
+:where(body:has(.topbar)) .remove-day-task { color: var(--an-muted); }
+:where(body:has(.topbar)) .inline-delete:hover,
+:where(body:has(.topbar)) .remove-day-task:hover { color: var(--st-late) !important; background: var(--st-late-bg) !important; }
+:where(body:has(.topbar)) .close { background: var(--an-surface-2); color: var(--an-link-strong); }
+:where(body:has(.topbar)) .close:hover { background: var(--an-line); }
+:where(body:has(.topbar)) .chev { color: var(--an-link); }
+
+/* 5. Superficies, tarjetas y contenedores ----------------------------------- */
+:where(body:has(.topbar)) .project-card,
+:where(body:has(.topbar)) .table-wrap,
+:where(body:has(.topbar)) .hierarchy-wrap,
+:where(body:has(.topbar)) .pending-wrap,
+:where(body:has(.topbar)) .users-table,
+:where(body:has(.topbar)) .side-card,
+:where(body:has(.topbar)) .week,
+:where(body:has(.topbar)) .gantt-wrap,
+:where(body:has(.topbar)) .detail-panel,
+:where(body:has(.topbar)) .summary-table-panel,
+:where(body:has(.topbar)) .summary-kpi,
+:where(body:has(.topbar)) .manage-projects,
+:where(body:has(.topbar)) .permission-checks,
+:where(body:has(.topbar)) .task-picker-list,
+:where(body:has(.topbar)) .subtasks-block,
+:where(body:has(.topbar)) .modal,
+:where(body:has(.topbar)) .drawer,
+:where(body:has(.topbar)) .quick-task-modal,
+:where(body:has(.topbar)) .profile-section,
+:where(body:has(.topbar)) .profile-header-card,
+:where(body:has(.topbar)) .empty-state {
+  background: var(--an-surface); border-color: var(--an-line);
+}
+:where(body:has(.topbar)) .project-card { box-shadow: none; }
+:where(body:has(.topbar)) .project-card:hover { border-color: var(--an-teal); box-shadow: var(--an-shadow-hover); background: var(--an-surface); }
+:where(body:has(.topbar)) .project-title b,
+:where(body:has(.topbar)) .project-card .project-title { color: var(--an-link); }
+:where(body:has(.topbar)) .project-title span { color: var(--an-teal); }
+:where(body:has(.topbar)) .project-card > small,
+:where(body:has(.topbar)) .project-stats { color: var(--an-muted); }
+:where(body:has(.topbar)) .project-stats b { color: var(--an-text); }
+:where(body:has(.topbar)) .project-stats .late b,
+:where(body:has(.topbar)) .overdue { color: var(--an-late-text); }
+:where(body:has(.topbar)) .summary-card,
+:where(body:has(.topbar)) .stat-box,
+:where(body:has(.topbar)) .profile-stat-card,
+:where(body:has(.topbar)) .summary-progress-panel,
+:where(body:has(.topbar)) .role-explanation,
+:where(body:has(.topbar)) .ai-note,
+:where(body:has(.topbar)) .editing-banner,
+:where(body:has(.topbar)) .meta-chip,
+:where(body:has(.topbar)) .quick-task-meta span,
+:where(body:has(.topbar)) .assignment-cell small {
+  background: var(--an-surface-2); border-color: var(--an-line); color: var(--an-muted);
+}
+:where(body:has(.topbar)) .summary-card.emphasis { background: var(--an-navy); border-color: var(--an-navy); color: #fff; }
+:where(body:has(.topbar)) .summary-card.emphasis small { color: #d6e6ed; }
+:where(body:has(.topbar)) .editing-banner span { color: var(--an-link-strong); }
+:where(body:has(.topbar)) .empty-state { border-color: var(--an-line-strong); }
+:where(body:has(.topbar)) .overlay,
+:where(body:has(.topbar)) .modal-overlay,
+:where(body:has(.topbar)) .quick-task-shade,
+:where(body:has(.topbar)) .drawer-shade { background: var(--an-overlay); }
+:where(body:has(.topbar)) .modal,
+:where(body:has(.topbar)) .drawer,
+:where(body:has(.topbar)) .quick-task-modal { box-shadow: var(--an-shadow-float); }
+:where(body:has(.topbar)) .toast { background: var(--an-navy-deep); color: #fff; }
+:where(body:has(.topbar)) .edit-toolbar-sticky { background: var(--an-toolbar); border-bottom-color: var(--an-line); box-shadow: none; }
+
+/* Avatares e iniciales: un solo estilo */
+:where(body:has(.topbar)) .avatar,
+:where(body:has(.topbar)) .mini-avatar,
+:where(body:has(.topbar)) .owner i,
+:where(body:has(.topbar)) .owner-line i,
+:where(body:has(.topbar)) .owners-cell > i,
+:where(body:has(.topbar)) .owners-cell .owner-entry > i,
+:where(body:has(.topbar)) .user-cell > i,
+:where(body:has(.topbar)) .profile-avatar {
+  background: var(--an-surface-2); color: var(--an-link);
 }
 
-.topbar nav a.active {
-  box-shadow: inset 0 -2px var(--topbar-highlight);
+/* 6. Tablas ----------------------------------------------------------------- */
+:where(body:has(.topbar)) th,
+:where(body:has(.topbar)) .users-head,
+:where(body:has(.topbar)) .hierarchy-head,
+:where(body:has(.topbar)) .subtask-head,
+:where(body:has(.topbar)) .week-head,
+:where(body:has(.topbar)) .summary-table th,
+:where(body:has(.topbar)) .pending-head,
+:where(body:has(.topbar)) .gantt-header,
+:where(body:has(.topbar)) .project-row {
+  background: var(--an-surface-2); color: var(--an-th); border-color: var(--an-line);
 }
-
-.topbar .contextual,
-.topbar .avatar {
-  background: transparent;
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 55%);
+:where(body:has(.topbar)) .week-head span { color: var(--an-th); }
+:where(body:has(.topbar)) td,
+:where(body:has(.topbar)) .summary-table td,
+:where(body:has(.topbar)) .entity,
+:where(body:has(.topbar)) .versions,
+:where(body:has(.topbar)) .subtask-row,
+:where(body:has(.topbar)) .subtask-line,
+:where(body:has(.topbar)) .day,
+:where(body:has(.topbar)) .day-label,
+:where(body:has(.topbar)) .task-row,
+:where(body:has(.topbar)) .backlog-item,
+:where(body:has(.topbar)) .focus-project,
+:where(body:has(.topbar)) .project-access,
+:where(body:has(.topbar)) .users-row,
+:where(body:has(.topbar)) .pending-row,
+:where(body:has(.topbar)) .task-picker-row,
+:where(body:has(.topbar)) .manage-projects > button,
+:where(body:has(.topbar)) .detail-grid,
+:where(body:has(.topbar)) .summary-section-heading,
+:where(body:has(.topbar)) .initiative-row,
+:where(body:has(.topbar)) .project-section,
+:where(body:has(.topbar)) .gantt-corner,
+:where(body:has(.topbar)) .month-tick,
+:where(body:has(.topbar)) .project-label,
+:where(body:has(.topbar)) .initiative-label,
+:where(body:has(.topbar)) .total-line,
+:where(body:has(.topbar)) .drawer-section,
+:where(body:has(.topbar)) .quick-task-meta,
+:where(body:has(.topbar)) .quick-task-actions,
+:where(body:has(.topbar)) .initiative-task-builder {
+  border-color: var(--an-line-soft);
 }
+:where(body:has(.topbar)) td,
+:where(body:has(.topbar)) .summary-table td { color: var(--an-text); }
+:where(body:has(.topbar)) .summary-table td:first-child,
+:where(body:has(.topbar)) .task-name,
+:where(body:has(.topbar)) .task-picker-row b,
+:where(body:has(.topbar)) .permission-checks b,
+:where(body:has(.topbar)) .project-access b,
+:where(body:has(.topbar)) .day-label b,
+:where(body:has(.topbar)) .users-summary b,
+:where(body:has(.topbar)) .project-choice b { color: var(--an-text); }
+:where(body:has(.topbar)) .task-name,
+:where(body:has(.topbar)) .pending-home-table .task-name { color: var(--an-link); }
+:where(body:has(.topbar)) tbody tr:hover,
+:where(body:has(.topbar)) .users-row:not(.users-head):hover,
+:where(body:has(.topbar)) .task-picker-row:hover,
+:where(body:has(.topbar)) .manage-projects > button:hover,
+:where(body:has(.topbar)) .inline-edit-row:hover,
+:where(body:has(.topbar)) .task-edit-row:hover,
+:where(body:has(.topbar)) .pending-row:hover {
+  background: var(--an-surface-3);
+}
+:where(body:has(.topbar)) .version-row { background: var(--an-surface-3); }
+:where(body:has(.topbar)) .version-code { background: var(--an-surface-2); color: var(--an-link); }
+:where(body:has(.topbar)) .entity-name small,
+:where(body:has(.topbar)) .pending-row > strong small,
+:where(body:has(.topbar)) .manage-projects small,
+:where(body:has(.topbar)) .permission-checks small,
+:where(body:has(.topbar)) .project-access small,
+:where(body:has(.topbar)) .task-picker-row small,
+:where(body:has(.topbar)) .user-cell small,
+:where(body:has(.topbar)) .day-label small,
+:where(body:has(.topbar)) .block-copy small,
+:where(body:has(.topbar)) .subtask-line small,
+:where(body:has(.topbar)) .empty-small,
+:where(body:has(.topbar)) .task-description,
+:where(body:has(.topbar)) .task-description-input,
+:where(body:has(.topbar)) .split-inline,
+:where(body:has(.topbar)) .complete-control,
+:where(body:has(.topbar)) .add-subtask,
+:where(body:has(.topbar)) .task-picker-row em,
+:where(body:has(.topbar)) .time-block time { color: var(--an-muted); }
+:where(body:has(.topbar)) .completed-entity { background: var(--an-surface-done) !important; color: var(--an-muted) !important; }
+:where(body:has(.topbar)) .completed-entity b:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity strong:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity span:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity small:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity input:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity select:not(:is(.pill, .badge, .summary-status)),
+:where(body:has(.topbar)) .completed-entity textarea:not(:is(.pill, .badge, .summary-status)) { color: var(--an-muted) !important; }
+:where(body:has(.topbar)) .completed-entity:hover { background: var(--an-done-hover) !important; }
 
-.topbar :is(.brand, nav a, .contextual, .avatar):focus-visible {
-  outline: 2px solid var(--topbar-highlight);
-  outline-offset: 3px;
+/* Tintes de prioridad en filas (se conserva la información, tonos armonizados) */
+:where(body:has(.topbar)) .pending-priority-alto td,
+:where(body:has(.topbar)) .task-priority-high,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-high { background: var(--tint-alta); }
+:where(body:has(.topbar)) .pending-priority-medio td,
+:where(body:has(.topbar)) .task-priority-medium,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-medium { background: var(--tint-media); }
+:where(body:has(.topbar)) .pending-priority-bajo td,
+:where(body:has(.topbar)) .task-priority-low,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-low { background: var(--tint-baja); }
+:where(body:has(.topbar)) .pending-priority-alto:hover td,
+:where(body:has(.topbar)) .task-priority-high:hover,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-high:hover { background: var(--tint-alta-h); }
+:where(body:has(.topbar)) .pending-priority-medio:hover td,
+:where(body:has(.topbar)) .task-priority-medium:hover,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-medium:hover { background: var(--tint-media-h); }
+:where(body:has(.topbar)) .pending-priority-bajo:hover td,
+:where(body:has(.topbar)) .task-priority-low:hover,
+:where(body:has(.topbar)) .task-picker-row.picker-priority-low:hover { background: var(--tint-baja-h); }
+:where(body:has(.topbar)) .pending-table .pending-row td,
+:where(body:has(.topbar)) .pending-table .pending-row:hover td { background: var(--an-surface); }
+:where(body:has(.topbar)) .pending-table .pending-row:hover td { background: var(--an-surface-3); }
+
+/* 7. Filtros y formularios -------------------------------------------------- */
+:where(body:has(.topbar)) input,
+:where(body:has(.topbar)) select,
+:where(body:has(.topbar)) textarea,
+:where(body:has(.topbar)) .search,
+:where(body:has(.topbar)) .column-filters input,
+:where(body:has(.topbar)) .column-filters select,
+:where(body:has(.topbar)) .tracking-select-wrap select,
+:where(body:has(.topbar)) .profile-form input {
+  background: var(--an-surface); border-color: var(--an-control); color: var(--an-text);
+  accent-color: var(--an-navy);
+}
+:where(body:has(.topbar)) input::placeholder,
+:where(body:has(.topbar)) textarea::placeholder { color: var(--an-placeholder); }
+:where(body:has(.topbar)) input:hover,
+:where(body:has(.topbar)) select:hover,
+:where(body:has(.topbar)) textarea:hover { border-color: var(--an-blue); }
+:where(body:has(.topbar)) input:focus,
+:where(body:has(.topbar)) select:focus,
+:where(body:has(.topbar)) textarea:focus,
+:where(body:has(.topbar)) .inline-edit-row input:focus,
+:where(body:has(.topbar)) .inline-edit-row select:focus,
+:where(body:has(.topbar)) .task-edit-row input:focus,
+:where(body:has(.topbar)) .task-edit-row select:focus {
+  border-color: var(--an-teal); box-shadow: 0 0 0 3px rgb(51 128 157 / 22%); background: var(--an-surface);
+}
+:where(body:has(.topbar)) .inline-edit-row input:hover,
+:where(body:has(.topbar)) .inline-edit-row select:hover,
+:where(body:has(.topbar)) .task-edit-row input:hover,
+:where(body:has(.topbar)) .task-edit-row select:hover,
+:where(body:has(.topbar)) .version-edit-name .code-input { background: var(--an-surface-3); }
+:where(body:has(.topbar)) .filters button { background: var(--an-surface); border-color: var(--an-line-strong); color: var(--an-link-strong); }
+:where(body:has(.topbar)) .filters button:hover { border-color: var(--an-teal); background: var(--an-surface-3); }
+:where(body:has(.topbar)) .filters button.active,
+:where(body:has(.topbar)) .table-controls button.active {
+  background: var(--an-navy); border-color: var(--an-navy); color: #fff;
+}
+:where(body:has(.topbar)) .responsible-picker label,
+:where(body:has(.topbar)) .theme-option { border-color: var(--an-line-strong); background: var(--an-surface); color: var(--an-text); }
+:where(body:has(.topbar)) .responsible-picker label:has(input:checked),
+:where(body:has(.topbar)) .theme-option:has(input:checked) {
+  border-color: var(--an-link); background: var(--an-surface-2); color: var(--an-link-strong);
+}
+:where(body:has(.topbar)) .theme-option input,
+:where(body:has(.topbar)) .validation-check input,
+:where(body:has(.topbar)) .task-edit-row > input { accent-color: var(--an-navy); }
+:where(body:has(.topbar)) .color-choice.selected { box-shadow: 0 0 0 2px var(--an-link-strong); }
+:where(body:has(.topbar)) .form-error,
+:where(body:has(.topbar)) .profile-feedback.error { color: var(--an-late-text) !important; }
+:where(body:has(.topbar)) .profile-feedback.success { color: var(--an-success-text) !important; }
+
+/* 8. Estados, prioridades e impacto (mismos valores, un solo código de color) */
+:where(body:has(.topbar)) .pendiente,
+:where(body:has(.topbar)) .baja,
+:where(body:has(.topbar)) .badge.pending,
+:where(body:has(.topbar)) .summary-status.pending { background: var(--st-pend-bg); color: var(--an-status-text); --an-status-text: var(--st-pend); }
+:where(body:has(.topbar)) .en-curso,
+:where(body:has(.topbar)) .badge.active,
+:where(body:has(.topbar)) .summary-status.active { background: var(--st-curso-bg); color: var(--an-status-text); --an-status-text: var(--st-curso); }
+:where(body:has(.topbar)) .en-revision,
+:where(body:has(.topbar)) .media,
+:where(body:has(.topbar)) .summary-status.review,
+:where(body:has(.topbar)) .badge.review { background: var(--st-rev-bg); color: var(--an-status-text); --an-status-text: var(--st-rev); }
+:where(body:has(.topbar)) .completada,
+:where(body:has(.topbar)) .badge.done,
+:where(body:has(.topbar)) .summary-status.done { background: var(--st-ok-bg); color: var(--an-status-text); --an-status-text: var(--st-ok); }
+:where(body:has(.topbar)) .retrasada,
+:where(body:has(.topbar)) .alta,
+:where(body:has(.topbar)) .badge.late,
+:where(body:has(.topbar)) .summary-status.late,
+:where(body:has(.topbar)) .atrasada { background: var(--st-late-bg); color: var(--an-status-text); --an-status-text: var(--st-late); }
+:where(body:has(.topbar)) .priority-alto { background: var(--st-late-bg); color: var(--st-late); }
+:where(body:has(.topbar)) .priority-medio { background: var(--st-rev-bg); color: var(--st-rev); }
+:where(body:has(.topbar)) .priority-bajo { background: var(--st-bajo-bg); color: var(--st-bajo); }
+:where(body:has(.topbar)) .impact { background: var(--an-surface-2); color: var(--an-link); }
+:where(body:has(.topbar)) .role-pill { background: var(--an-bg); color: var(--an-muted); box-shadow: inset 0 0 0 1px var(--an-line); }
+:where(body:has(.topbar)) .role-pill.admin,
+:where(body:has(.topbar)) .profile-role-pill { background: var(--an-surface-2); color: var(--an-link); }
+:where(body:has(.topbar)) .assignment-cell small.can-edit { background: var(--st-ok-bg); color: var(--st-ok); }
+:where(body:has(.topbar)) .status-dot { background: #9fb0b7; }
+:where(body:has(.topbar)) .status-dot.active { background: var(--st-ok); }
+:where(body:has(.topbar)) .day-label em { background: var(--an-navy); color: #fff; }
+
+/* Progreso */
+:where(body:has(.topbar)) .progress > i,
+:where(body:has(.topbar)) .summary-progress-track { background: var(--an-line); }
+:where(body:has(.topbar)) .progress > i b,
+:where(body:has(.topbar)) .summary-progress-track i,
+:where(body:has(.topbar)) .summary-task-progress i { background: var(--an-teal); }
+:where(body:has(.topbar)) .summary-task-progress span,
+:where(body:has(.topbar)) .task-progress-value { color: var(--an-text); }
+
+/* 9. Resumen: KPI con color solo donde hay significado ---------------------- */
+:where(body:has(.topbar)) .summary-kpi { border-top-color: var(--an-navy); }
+:where(body:has(.topbar)) .summary-kpi strong { color: var(--an-heading); }
+:where(body:has(.topbar)) .summary-kpi.green,
+:where(body:has(.topbar)) .summary-kpi.blue,
+:where(body:has(.topbar)) .summary-kpi.ink,
+:where(body:has(.topbar)) .summary-kpi.slate { border-top-color: var(--an-navy); }
+:where(body:has(.topbar)) .summary-kpi.green strong,
+:where(body:has(.topbar)) .summary-kpi.blue strong { color: var(--an-heading); }
+:where(body:has(.topbar)) .summary-kpi.orange { border-top-color: var(--an-teal); }
+:where(body:has(.topbar)) .summary-kpi.orange strong { color: var(--an-link); }
+:where(body:has(.topbar)) .summary-kpi.late { border-top-color: var(--st-late); }
+:where(body:has(.topbar)) .summary-kpi.late strong { color: var(--an-late-text); }
+:where(body:has(.topbar)) .summary-kpi.amber { border-top-color: #c18a1a; }
+:where(body:has(.topbar)) .summary-kpi.amber strong { color: var(--an-warning-text); }
+:where(body:has(.topbar)) .summary-progress-panel strong { color: var(--an-link); }
+
+/* 10. Gantt / Seguimiento ---------------------------------------------------- */
+:where(body:has(.topbar)) .project-label { color: var(--an-heading); }
+:where(body:has(.topbar)) .month-tick { color: var(--an-th); }
+:where(body:has(.topbar)) .initiative-lane { background: var(--an-surface); }
+:where(body:has(.topbar)) .version-bar { box-shadow: none; }
+:where(body:has(.topbar)) .version-bar.pending { background: var(--bar-pend); }
+:where(body:has(.topbar)) .version-bar.active { background: var(--bar-curso); }
+:where(body:has(.topbar)) .version-bar.review { background: var(--bar-rev); color: var(--bar-rev-text); }
+:where(body:has(.topbar)) .version-bar.done { background: var(--bar-ok); }
+:where(body:has(.topbar)) .version-bar.late { background: var(--bar-late); }
+:where(body:has(.topbar)) .version-bar.selected { outline: 2px solid var(--an-link-strong); outline-offset: 1px; }
+:where(body:has(.topbar)) .task-dot.done { background: var(--st-ok); }
+:where(body:has(.topbar)) .task-dot.pending { border-color: var(--an-line-strong); background: var(--an-surface); }
+:where(body:has(.topbar)) .donut-chart span { color: var(--an-heading); background: var(--an-surface); }
+
+/* 11. Agenda ----------------------------------------------------------------- */
+:where(body:has(.topbar)) .time-block { background: var(--an-surface); border-color: var(--an-line); }
+:where(body:has(.topbar)) .duration { background: var(--an-surface-2); color: var(--an-muted); }
+:where(body:has(.topbar)) .empty-day { background: var(--an-surface); border-color: var(--an-line-strong); color: var(--an-link); }
+:where(body:has(.topbar)) .empty-day:hover { border-color: var(--an-teal); background: var(--an-surface-3); }
+:where(body:has(.topbar)) .outcome-mark { border-color: var(--an-control); background: var(--an-surface); }
+:where(body:has(.topbar)) .outcome-advanced { background: var(--tint-media); }
+:where(body:has(.topbar)) .outcome-advanced .outcome-mark,
+:where(body:has(.topbar)) .outcome-actions button.active { background: var(--st-rev-bg); border-color: #e2c169; color: var(--st-rev); }
+:where(body:has(.topbar)) .outcome-completed .outcome-mark { background: var(--st-ok); border-color: var(--st-ok); color: #fff; }
+:where(body:has(.topbar)) .outcome-actions button:last-child,
+:where(body:has(.topbar)) .completed-label { color: var(--an-success-text); }
+:where(body:has(.topbar)) .week-summary > div { border-color: var(--an-line-soft); color: var(--an-muted); }
+
+/* 12. Usuarios y perfil ------------------------------------------------------ */
+:where(body:has(.topbar)) .users-row:not(.users-head) { background: var(--an-surface); }
+:where(body:has(.topbar)) .profile-stat-values strong { color: var(--an-link); }
+:where(body:has(.topbar)) .profile-stat-values small,
+:where(body:has(.topbar)) .profile-stat-card > span,
+:where(body:has(.topbar)) .profile-summary-meta .muted-line,
+:where(body:has(.topbar)) .profile-summary-meta .eyebrow,
+:where(body:has(.topbar)) .section-title-row .eyebrow { color: var(--an-muted); }
+:where(body:has(.topbar)) .profile-form label { color: var(--an-th); }
+/* Mantiene legibles los controles y estados en las superficies oscuras. */
+:where(html[data-theme="dark"] body:has(.topbar)) .button.quiet,
+:where(html[data-theme="dark"] body:has(.topbar)) .summary-action,
+:where(html[data-theme="dark"] body:has(.topbar)) .project-gantt-button,
+:where(html[data-theme="dark"] body:has(.topbar)) .week-navigation button,
+:where(html[data-theme="dark"] body:has(.topbar)) .filters button {
+  border-color: var(--an-control);
+}
+:where(html[data-theme="dark"] body:has(.topbar)) .filters button.active,
+:where(html[data-theme="dark"] body:has(.topbar)) .table-controls button.active {
+  border-color: var(--an-link);
+}
+:where(body:has(.topbar)) :is(.primary, .button.primary):disabled {
+  opacity: 1;
+}
+/* Los estados mantienen su contraste dentro de filas completadas. */
+:where(body:has(.topbar)) .completed-entity .pill {
+  color: var(--an-status-text, var(--an-muted)) !important;
+}
+:where(body:has(.topbar)) .inline-edit-row :is(input, select):focus-visible,
+:where(body:has(.topbar)) .task-edit-row :is(input, select):focus-visible {
+  outline: 2px solid var(--an-teal);
+  outline-offset: 2px;
 }
