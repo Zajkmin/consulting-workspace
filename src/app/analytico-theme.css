@@ -116,13 +116,14 @@ tbody tr:hover, .project-card:hover, .users-row:not(.users-head):hover,
 /* 1. Tokens ---------------------------------------------------------------- */
 html:has(.topbar) {
   /* Marca (web oficial) */
+  --an-night: #02172b;
   --an-navy: #004f76;        /* acción primaria, enlaces, texto activo */
-  --an-navy-deep: #003456;   /* barra superior, hover de primario */
+  --an-navy-deep: #003456;   /* hover de primario */
   --an-navy-ink: #002a45;    /* presionado */
   --an-blue: #275f7f;        /* énfasis secundario, "En curso" */
   --an-teal: #33809d;        /* acento: progreso, foco, bordes seleccionados */
   --an-sky: #5ba4c2;         /* acento sobre fondo oscuro */
-  --an-cyan: #54eef2;        /* solo sobre la barra navy (indicador activo) */       /* azul noche de la web: barra superior */
+  --an-cyan: #54eef2;        /* indicador y foco en la barra superior */
   --an-heading: #003456;     /* títulos de página */
 
   /* Neutros */
@@ -130,6 +131,7 @@ html:has(.topbar) {
   --an-surface: #ffffff;     /* tarjetas, tablas, modales */
   --an-surface-2: #eaf1f4;   /* encabezados de tabla, superficies secundarias (mist) */
   --an-surface-3: #f3f7f9;   /* hover de filas */
+  --an-version-surface: #fbfcfd;
   --an-surface-done: #f1f5f7;/* filas completadas */
   --an-line: #dce5e9;        /* bordes de contenedores */
   --an-line-soft: #e9eff2;   /* separadores de filas */
@@ -191,6 +193,7 @@ html[data-theme="dark"]:has(.topbar) {
   --an-surface: #02172b;
   --an-surface-2: #003456;
   --an-surface-3: #0a2840;
+  --an-version-surface: var(--an-surface-3);
   --an-surface-done: #06203a;
   --an-line: #1d4a66;
   --an-line-soft: #123a55;
@@ -287,7 +290,9 @@ html[data-theme="dark"]:has(.topbar) {
 /* 3. Barra superior y menú de cuenta ---------------------------------------- */
 :where(body:has(.topbar)) .topbar {
   background:
-    var(--an-navy);
+    linear-gradient(90deg, var(--an-night) 40%, rgb(2 23 43 / 72%) 68%, rgb(2 23 43 / 45%) 100%),
+    url("/hero-wave.webp") right 42% / 820px auto no-repeat,
+    var(--an-night);
   border-bottom-color: rgb(84 238 242 / 22%);
   box-shadow: none;
 }
@@ -321,7 +326,7 @@ html[data-theme="dark"]:has(.topbar) {
 :where(body:has(.topbar)) .primary:active,
 :where(body:has(.topbar)) .button.primary:active { background: var(--an-navy-ink); }
 :where(body:has(.topbar)) .primary:disabled,
-:where(body:has(.topbar)) .button.primary:disabled { background: #9fb4be; border-color: #9fb4be; color: #102338; }
+:where(body:has(.topbar)) .button.primary:disabled { background: #9fb4be; border-color: #9fb4be; color: #102338; cursor: not-allowed; }
 :where(body:has(.topbar)) .quiet,
 :where(body:has(.topbar)) .button.quiet,
 :where(body:has(.topbar)) .summary-action,
@@ -505,7 +510,7 @@ html[data-theme="dark"]:has(.topbar) {
 :where(body:has(.topbar)) .pending-row:hover {
   background: var(--an-surface-3);
 }
-:where(body:has(.topbar)) .version-row { background: var(--an-surface-3); }
+:where(body:has(.topbar)) .version-row { background: var(--an-version-surface); }
 :where(body:has(.topbar)) .version-code { background: var(--an-surface-2); color: var(--an-link); }
 :where(body:has(.topbar)) .entity-name small,
 :where(body:has(.topbar)) .pending-row > strong small,
