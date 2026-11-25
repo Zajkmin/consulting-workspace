@@ -17,9 +17,10 @@ export function Header() {
   const [recentIds, setRecentIds] = useState<string[]>([]);
 
   const canManageUsers = currentUser?.role === "admin";
-  const canCreate =
+  const canCreate = data.projects.some((project) =>
     currentUser?.role === "admin" ||
-    (currentUser?.role === "gestor" && (currentUser?.editableProjectIds?.length ?? 0) > 0);
+    (currentUser?.role === "gestor" && currentUser.editableProjectIds?.includes(project.id)),
+  );
   const roleLabel =
     currentUser?.role === "admin"
       ? "Administrador"

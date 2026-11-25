@@ -1,5 +1,6 @@
 "use server";
-import{randomUUID}from"node:crypto";import type{AppData,DeliverableVersion,Initiative,InitiativeBundle,Project,ScheduleBlock,Task,User,WorkPreferences}from"@/types";import{requireProjectAccess,requireProjectManager,requireServerPermission,requireServerPrincipal}from"@/services/auth/authorization";import{SharePointCrudRepositories}from"@/services/sharepoint/crud-repository";import{SharePointRelationshipCrud}from"@/services/sharepoint/relationship-crud";import{readSharePointWorkspace}from"@/services/sharepoint/workspace-reader";import{SupabaseWorkspaceService}from"@/services/supabase/workspace-service";
+import{randomUUID}from"node:crypto";import type{AppData,DeliverableVersion,Initiative,InitiativeBundle,Project,ProjectArchiveReason,ScheduleBlock,Task,User,WorkPreferences}from"@/types";import{requireProjectAccess,requireProjectManager,requireServerPermission,requireServerPrincipal}from"@/services/auth/authorization";import{SharePointCrudRepositories}from"@/services/sharepoint/crud-repository";import{SharePointRelationshipCrud}from"@/services/sharepoint/relationship-crud";import{readSharePointWorkspace}from"@/services/sharepoint/workspace-reader";import{SupabaseWorkspaceService}from"@/services/supabase/workspace-service";
+import { SupabaseMigrationError } from "@/services/supabase/admin-rest-client";
 const repos=()=>new SharePointCrudRepositories(),supabase=()=>new SupabaseWorkspaceService(),isSupabaseProvider=()=>process.env.DATA_PROVIDER?.trim().toLowerCase()==="supabase",cleanId=(id:string)=>id.trim()||randomUUID(),message=()=>"No se pudo guardar el cambio en SharePoint.";
 export async function loadWorkspace():Promise<AppData>{const principal=await requireServerPrincipal();if(isSupabaseProvider())return supabase().loadWorkspace(principal.appId);const result=await readSharePointWorkspace(undefined,principal.appId);if(!result.data)throw new Error("No se pudo cargar el espacio de trabajo.");return result.data}
 async function refreshed(){return loadWorkspace()}
@@ -9,7 +10,7 @@ async function userIdsByNames(r:SharePointCrudRepositories,names:string[]){retur
 async function areaIdByName(r:SharePointCrudRepositories,projectId:string,name:string){const area=(await r.areas.list()).find(item=>item.projectId===projectId&&item.name===name);if(!area)throw new Error("El área seleccionada no existe.");return area.id}
 async function requireTaskControl(r:SharePointCrudRepositories,task:Task|{projectId:string;assignedUserId:string}){const principal=await requireProjectAccess(task.projectId,"edit");if(principal.role==="usuario"){const assignedUserId="assignedUserId"in task?task.assignedUserId:await userIdByName(r,task.assignedTo);if(assignedUserId!==principal.appId)throw new Error("FORBIDDEN")}return principal}
 
-export async function saveProjectAction(project:Project,isNew:boolean){if(isSupabaseProvider())return supabase().saveProject(project,isNew);const principal=isNew?await requireServerPermission("manageProjects"):await requireProjectManager(project.id),r=repos(),value={...project,id:cleanId(project.id),clientId:project.clientId?.trim() ?? null};if(isNew){if(value.clientId){const existing=await r.clients.getByAppId(value.clientId);if(!existing)await r.clients.create({id:value.clientId,name:value.name});}await r.projects.create(value);if(principal.role==="gestor")await r.projectMembers.create({id:randomUUID(),projectId:value.id,userId:principal.appId,accessLevel:"edit"})}else{const current=await r.projects.getByAppId(value.id);if(!current)throw new Error(message());await r.projects.update(value,current.eTag)}const desired=new Set(value.areas??[value.area]),existing=(await r.areas.listVersioned()).filter(item=>item.entity.projectId===value.id);for(const name of desired){const found=existing.find(item=>item.entity.name===name);if(!found)await r.areas.create({id:randomUUID(),projectId:value.id,name,active:true});else if(!found.entity.active)await r.areas.update({...found.entity,active:true},found.eTag)}for(const area of existing.filter(item=>!desired.has(item.entity.name)&&item.entity.name!==value.area&&item.entity.active))await r.areas.update({...area.entity,active:false},area.eTag);return refreshed()}
+export async function saveProjectAction(project:Project,isNew:boolean){if(isSupabaseProvider())return supabase().saveProject(project,isNew);if(project.active!==true)throw new Error("No se puede cambiar el estado desde el formulario de proyecto.");const principal=isNew?await requireServerPermission("manageProjects"):await requireProjectManager(project.id),r=repos(),value={...project,id:cleanId(project.id),clientId:project.clientId?.trim() ?? null};if(isNew){if(value.clientId){const existing=await r.clients.getByAppId(value.clientId);if(!existing)await r.clients.create({id:value.clientId,name:value.name});}await r.projects.create(value);if(principal.role==="gestor")await r.projectMembers.create({id:randomUUID(),projectId:value.id,userId:principal.appId,accessLevel:"edit"})}else{const current=await r.projects.getByAppId(value.id);if(!current)throw new Error(message());if(!current.entity.active)throw new Error("No se puede modificar un proyecto archivado.");await r.projects.update(value,current.eTag)}const desired=new Set(value.areas??[value.area]),existing=(await r.areas.listVersioned()).filter(item=>item.entity.projectId===value.id);for(const name of desired){const found=existing.find(item=>item.entity.name===name);if(!found)await r.areas.create({id:randomUUID(),projectId:value.id,name,active:true});else if(!found.entity.active)await r.areas.update({...found.entity,active:true},found.eTag)}for(const area of existing.filter(item=>!desired.has(item.entity.name)&&item.entity.name!==value.area&&item.entity.active))await r.areas.update({...area.entity,active:false},area.eTag);return refreshed()}
 export async function deleteProjectAction(id:string){if(isSupabaseProvider())return supabase().deleteProject(id);await requireProjectManager(id);const r=repos();await new SharePointRelationshipCrud(r).deleteProject(id);return refreshed()}
 export async function addAreaAction(projectId:string,name:string){if(isSupabaseProvider())return supabase().addArea(projectId,name);await requireProjectManager(projectId);const r=repos();await r.areas.create({id:randomUUID(),projectId,name:name.trim(),active:true});return refreshed()}
 
@@ -36,6 +37,8 @@ export async function createInitiativeBundleAction(bundle:InitiativeBundle){if(i
 
 type WorkspaceMutation =
   | {type:"saveProject";project:Project;isNew:boolean}
+  | {type:"archiveProject";id:string;reason:ProjectArchiveReason}
+  | {type:"reactivateProject";id:string}
   | {type:"deleteProject";id:string}
   | {type:"addArea";projectId:string;name:string}
   | {type:"saveTask";task:Task;isNew:boolean}
@@ -58,7 +61,12 @@ export type WorkspaceMutationResult = {ok:true;data:AppData}|{ok:false;message:s
 
 function mutationErrorMessage(error:unknown){
   const raw=error instanceof Error?error.message:"";
-  if(raw==="FORBIDDEN")return "No tenés permisos para realizar este cambio.";
+  if(raw==="FORBIDDEN" || (error instanceof SupabaseMigrationError && error.responseCode==="PT403"))return "No tenés permisos para realizar este cambio.";
+  if(error instanceof SupabaseMigrationError){
+    if(error.responseMessage==="project_archived")return "No se puede modificar un proyecto archivado. Reactivalo para continuar.";
+    if(error.responseMessage==="project_archive_transition_required")return "No se puede cambiar el estado del proyecto desde esta operación.";
+    if(error.responseMessage==="project_not_found")return "El proyecto no existe.";
+  }
   if(error instanceof Error&&error.name==="SupabaseConcurrencyError")return "Este registro cambió mientras lo estabas editando. Los datos se actualizaron; revisá el cambio e intentá guardarlo nuevamente.";
   const allowed=["no existe","no se puede","no podés","seleccion","duplicad","inválid","falta configurar"];
   if(raw&&allowed.some(fragment=>raw.toLocaleLowerCase("es").includes(fragment)))return raw;
@@ -70,6 +78,11 @@ export async function runWorkspaceMutation(input:WorkspaceMutation):Promise<Work
     let data:AppData;
     switch(input.type){
       case "saveProject":data=await saveProjectAction(input.project,input.isNew);break;
+      case "archiveProject":
+      case "reactivateProject":
+        if(!isSupabaseProvider())throw new Error("No se puede cambiar el estado del proyecto con el proveedor de datos actual.");
+        data=input.type==="archiveProject"?await supabase().archiveProject(input.id,input.reason):await supabase().reactivateProject(input.id);
+        break;
       case "deleteProject":data=await deleteProjectAction(input.id);break;
       case "addArea":data=await addAreaAction(input.projectId,input.name);break;
       case "saveTask":data=await saveTaskAction(input.task,input.isNew);break;

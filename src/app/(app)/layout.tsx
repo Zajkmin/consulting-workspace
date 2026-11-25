@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   };
 
   return (
-    <AppProvider authenticatedUser={authenticatedUser} initialWorkspace={remoteData}>
+    <AppProvider authenticatedUser={authenticatedUser} initialWorkspace={remoteData} projectArchiving={process.env.DATA_PROVIDER?.trim().toLowerCase() === "supabase"}>
       <AppShell>{children}</AppShell>
     </AppProvider>
   );

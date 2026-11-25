@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useApp } from "@/hooks/use-app";
+import { projectArchiveLabel } from "@/lib/project-archive";
 import { Hierarchy } from "@/components/initiatives/hierarchy";
 
 export default function ProjectPage() {
 	const { projectId } = useParams<{ projectId: string }>();
-	const { data } = useApp();
-	const project = data.projects.find((item) => item.id === projectId);
+	const { projectData } = useApp();
+	const project = projectData.projects.find((item) => item.id === projectId);
 
 	useEffect(() => {
-		if (!project) return;
+		if (!project?.active) return;
 		const key = "consulting-recent-projects";
 		const recent = JSON.parse(localStorage.getItem(key) ?? "[]").filter(
 			(id: string) => id !== project.id,
@@ -43,7 +44,8 @@ export default function ProjectPage() {
 					</Link>
 				</div>
 			</div>
-			<Hierarchy projectId={project.id} />
+			{!project.active && <p className="editing-banner">Proyecto archivado · {projectArchiveLabel(project.archiveReason)} · Solo lectura</p>}
+			<Hierarchy key={String(project.active)} projectId={project.id} />
 		</main>
 	);
 }

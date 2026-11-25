@@ -99,7 +99,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
     if (!currentUser) return [];
     if (projectId) {
       return allData.projects.filter(
-        (project) => project.id === projectId && project.active !== false,
+        (project) => project.id === projectId && (currentUser.role === "admin" || currentUser.assignedProjectIds.includes(project.id)),
       );
     }
     if (currentUser.role === "admin") {
