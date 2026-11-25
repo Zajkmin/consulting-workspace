@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { effectiveTaskStatus } from "@/lib/format";
 import { StatusPill } from "@/components/ui/status-pill";
 import { QuickTaskAction } from "./quick-task-action";
 import { taskAssigneeLabel, taskAssigneeNames } from "@/lib/task-assignees";
@@ -10,7 +11,7 @@ import type { Task } from "@/types";
 const priority = { Alta: 0, Media: 1, Baja: 2 } as const;
 
 export function TaskTable() {
-  const { data } = useApp();
+  const { data, today } = useApp();
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("Todas");
   const [projectId, setProjectId] = useState("Todos");
@@ -143,7 +144,7 @@ export function TaskTable() {
                       </span>
                       <span>{assignees}</span>
                     </td>
-                    <td><StatusPill value={task.status} /></td>
+                    <td><StatusPill value={effectiveTaskStatus(task, today)} /></td>
                   </tr>
                 );
               })}

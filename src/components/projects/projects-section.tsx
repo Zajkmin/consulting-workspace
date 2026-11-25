@@ -11,7 +11,7 @@ import { ProjectCards } from "./project-cards";
 import { ProjectForm } from "./project-form";
 
 export function ProjectsSection() {
-  const { data, projectData, currentUser, canArchiveProjects } = useApp();
+  const { data, projectData, allData, today, currentUser, canArchiveProjects } = useApp();
   const [panel, setPanel] = useState<"manage" | "archive" | null>(null);
   const [editing, setEditing] = useState<Project | "new" | null>(null);
   const [changing, setChanging] = useState<Project | null>(null);
@@ -42,7 +42,7 @@ export function ProjectsSection() {
         </div>
       </div>
       {feedback && <p className="subtle" role="status">{feedback}</p>}
-      <ProjectCards projects={data.projects} initiatives={data.initiatives} versions={data.versions} tasks={data.tasks} />
+      <ProjectCards projects={data.projects} initiatives={data.initiatives} versions={data.versions} tasks={allData.tasks} today={today} />
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? "Nuevo proyecto" : "Editar proyecto"}>
         {editing && <ProjectForm project={editing === "new" ? undefined : editing} onDone={() => setEditing(null)} />}

@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { initialData } from "@/data/mocks";
 import { localDataStore } from "@/services/storage";
 import type { AppData, DailyTaskOutcome, DeliverableVersion, Initiative, InitiativeBundle, Project, ProjectArchiveReason, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
+import { asuncionDate } from "@/lib/dates";
 import { selectProjectWorkspace } from "@/lib/project-archive";
 import * as remoteActions from "@/app/actions/workspace";
 
 type Ctx = {
-  data: AppData; projectData: AppData; allData: AppData; canArchiveProjects: boolean; currentUser: User | null; authReady: boolean; notice: string;
+  today: string; data: AppData; projectData: AppData; allData: AppData; canArchiveProjects: boolean; currentUser: User | null; authReady: boolean; notice: string;
   login:(email:string,password:string)=>boolean; logout:()=>void; clearNotice:()=>void;
   saveUser:(u:User)=>void|Promise<boolean>; addUser:(u:User)=>void|Promise<boolean>; saveTask:(t:Task)=>void|Promise<boolean>; addTask:(t:Task)=>void|Promise<boolean>;
   deleteUser:(id:string)=>void|Promise<boolean>; saveProject:(p:Project)=>void|Promise<boolean>; addProject:(p:Project)=>void|Promise<boolean>; deleteProject:(id:string)=>void|Promise<boolean>; addArea:(projectId:string,name:string)=>void|Promise<boolean>;
@@ -19,8 +20,16 @@ type Ctx = {
 };
 const Context=createContext<Ctx|null>(null);
 
-export function AppProvider({children,authenticatedUser,initialWorkspace,projectArchiving=false}:{children:React.ReactNode;authenticatedUser?:User;initialWorkspace?:AppData;projectArchiving?:boolean}){
+export function AppProvider({children,authenticatedUser,initialWorkspace,projectArchiving=false,initialToday}:{children:React.ReactNode;authenticatedUser?:User;initialWorkspace?:AppData;projectArchiving?:boolean;initialToday:string}){
   const remote=Boolean(initialWorkspace),[allData,setAllData]=useState(initialWorkspace??initialData),[currentUserId,setCurrentUserId]=useState<string|null>(authenticatedUser?.id??null),[authReady,setAuthReady]=useState(remote),[notice,setNotice]=useState("");
+  const [today,setToday]=useState(initialToday);
+  useEffect(()=>{
+    const refresh=()=>setToday(asuncionDate());
+    refresh();
+    const timer=window.setInterval(refresh,15_000);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(timer);document.removeEventListener("visibilitychange",refresh);};
+  },[]);
   const initiativeCreation=useRef<Promise<void>>(Promise.resolve());
   useEffect(()=>{if(remote)return;const stored=localDataStore.load();if(stored?.users){setAllData({...stored,workPreferences:stored.workPreferences??initialData.workPreferences,projects:stored.projects.map(p=>({...p,areas:p.areas??initialData.projects.find(x=>x.id===p.id)?.areas??[p.area]})),users:stored.users.map(u=>{const seed=initialData.users.find(x=>x.id===u.id);return{...u,editableProjectIds:u.editableProjectIds??seed?.editableProjectIds??[],permissions:u.permissions??seed?.permissions??{manageUsers:false,manageProjects:false,manageSchedule:true}}})})}else setAllData(initialData);setCurrentUserId(localDataStore.loadSession());setAuthReady(true)},[]);
   useEffect(()=>{if(authReady&&!remote)localDataStore.save(allData)},[allData,authReady,remote]);
@@ -67,6 +76,6 @@ export function AppProvider({children,authenticatedUser,initialWorkspace,project
   const setBlockOutcome=(id:string,outcome:DailyTaskOutcome)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"setBlockOutcome",id,outcome}),outcome==="completed"?"Tarea completada.":"Avance actualizado.");mutate(d=>{const block=d.schedule.find(b=>b.id===id);if(!block)return d;const schedule=d.schedule.map(b=>b.id===id?{...b,outcome,completed:outcome==="completed",completedAt:outcome==="completed"?new Date().toISOString():undefined}:b);if(outcome!=="completed")return{...d,schedule,tasks:d.tasks.map(t=>t.id===block.taskId&&outcome==="advanced"&&t.status==="Pendiente"?{...t,status:"En curso"}:t)};const tasks=d.tasks.map(t=>t.id===block.taskId?{...t,status:"Completada" as const,progress:100,subtasks:t.subtasks.map(s=>({...s,completed:true}))}:t),trimmedSchedule=schedule.filter(b=>b.taskId!==block.taskId||b.date<=block.date),versions=d.versions.map(v=>{const related=tasks.filter(t=>t.versionId===v.id);return related.length&&related.every(t=>t.status==="Completada")?{...v,status:"Completada" as const}:v}),initiatives=d.initiatives.map(i=>{const related=versions.filter(v=>v.initiativeId===i.id);return related.length&&related.every(v=>v.status==="Completada")?{...i,status:"Completada" as const}:i});return{...d,schedule:trimmedSchedule,tasks,versions,initiatives}});setNotice(outcome==="completed"?"Tarea completada y retirada de los próximos días.":outcome==="advanced"?"Avance registrado para este día.":"Tarea marcada como pendiente.")};
   const scheduleTask=(taskId:string)=>{const block:ScheduleBlock={id:`b-${Date.now()}`,taskId,date:"2026-09-04",startTime:"15:00",endTime:"16:00",source:"suggested",completed:false};if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveBlock",block,isNew:true}),"Bloque agregado a la agenda.");mutate(d=>({...d,schedule:[...d.schedule,block]}));setNotice("Encontramos un espacio el viernes a las 15:00.")};
   const replan=()=>setNotice("La agenda se organiza eligiendo las tareas de cada día.");
-  return <Context.Provider value={{data,projectData,allData,canArchiveProjects:remote&&projectArchiving,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,changeProjectArchive,addArea,saveTask,addTask,addInitiative,addVersion,addInitiativeBundle,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,setBlockOutcome,scheduleTask,replan}}>{children}</Context.Provider>
+  return <Context.Provider value={{today,data,projectData,allData,canArchiveProjects:remote&&projectArchiving,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,changeProjectArchive,addArea,saveTask,addTask,addInitiative,addVersion,addInitiativeBundle,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,setBlockOutcome,scheduleTask,replan}}>{children}</Context.Provider>
 }
 export function useApp(){const v=useContext(Context);if(!v)throw new Error("useApp fuera de AppProvider");return v}

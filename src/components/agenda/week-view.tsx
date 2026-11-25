@@ -2,6 +2,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { calendarDate, calendarLabel } from "@/lib/dates";
 import { Modal } from "@/components/ui/modal";
 import { isCurrentUserTaskForAgenda } from "@/lib/user-name-match";
 import { DailyTaskPicker } from "./daily-task-picker";
@@ -15,7 +16,7 @@ const names = [
   "Sábado",
 ];
 export function WeekView() {
-  const { data, currentUser, setBlockOutcome, deleteBlock } = useApp(),
+  const { data, today, currentUser, setBlockOutcome, deleteBlock } = useApp(),
     canManage =
       currentUser?.role === "admin" || currentUser?.permissions?.manageSchedule,
     isCurrentUserTask = (task?: { assignedProfileId?: string | null; assignedTo?: string | null } | null) =>
@@ -24,24 +25,21 @@ export function WeekView() {
     [selectedDate, setSelectedDate] = useState<string | null>(null),
     [weekOffset, setWeekOffset] = useState(0),
     days = useMemo(() => {
-      const today = new Date(),
-        monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-      monday.setDate(monday.getDate() + weekOffset * 7);
+      const monday = calendarDate(today);
+      if (!monday) return [];
+      monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7) + weekOffset * 7);
       return Array.from({ length: 7 }, (_, index) => {
         const day = new Date(monday);
-        day.setDate(monday.getDate() + index);
+        day.setUTCDate(monday.getUTCDate() + index);
+        const date = day.toISOString().slice(0, 10);
         return {
-          date: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
-          name: names[day.getDay()],
-          short: new Intl.DateTimeFormat("es-PY", {
-            day: "numeric",
-            month: "short",
-          }).format(day),
-          today: day.toDateString() === today.toDateString(),
+          date,
+          name: names[day.getUTCDay()],
+          short: calendarLabel(date, { day: "numeric", month: "short" }) ?? "",
+          today: date === today,
         };
       });
-    }, [weekOffset]),
+    }, [today, weekOffset]),
     selectedDay = days.find((day) => day.date === selectedDate),
     planned = new Set(
       data.schedule

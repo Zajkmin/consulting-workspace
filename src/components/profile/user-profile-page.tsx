@@ -45,7 +45,7 @@ function applyTheme(theme: ThemeOption) {
 }
 
 export function UserProfilePage() {
-  const { currentUser, data, allData } = useApp();
+  const { currentUser, data, allData, today } = useApp();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -103,10 +103,10 @@ export function UserProfilePage() {
   );
 
   const initiativeStatuses = myInitiatives.map((initiative) =>
-    effectiveInitiativeStatus(initiative, allData.versions, allData.tasks),
+    effectiveInitiativeStatus(initiative, allData.versions, allData.tasks, today),
   );
   const versionStatuses = myVersions.map((version) =>
-    effectiveVersionStatus(version, allData.tasks),
+    effectiveVersionStatus(version, allData.tasks, today),
   );
 
   const summary = {
