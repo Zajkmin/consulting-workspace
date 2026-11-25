@@ -51,8 +51,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       deleteInitiative,
       deleteVersion,
       deleteTask,
-      notice,
-      clearNotice,
     } = useApp(),
     [openI, setOpenI] = useState(new Set<string>()),
     [openV, setOpenV] = useState(new Set<string>()),
@@ -67,11 +65,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     [versionForm, setVersionForm] = useState<string | null>(null),
     [areaForm, setAreaForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(clearNotice, 3200);
-    return () => clearTimeout(timer);
-  }, [notice, clearNotice]);
   useEffect(() => {
     if (!editing) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
@@ -745,11 +738,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
           </div>
         </div>
       </section>
-      {notice && (
-        <div className="toast" role="status">
-          {notice}
-        </div>
-      )}
       <Modal open={!!form} onClose={() => setForm(null)} title="Nueva tarea">
         {form && (
           <TaskForm
