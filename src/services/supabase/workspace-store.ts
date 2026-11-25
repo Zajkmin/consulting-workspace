@@ -1,4 +1,4 @@
-import type { AppData, Priority, Project, TaskStatus, UserRole } from "../../types/index.ts";
+import type { AppData, Priority, Project, ProjectArchiveReason, TaskStatus, UserRole } from "../../types/index.ts";
 import { assembleWorkspace, type MappedWorkspaceLists } from "../sharepoint/assembler.ts";
 import type { AreaRecord, DependencyRecord, InitiativeRecord, ProjectMemberRecord, ScheduleRecord, SubtaskRecord, TaskRecord, VersionRecord, WorkPreferencesRecord } from "../sharepoint/mappers.ts";
 import { SupabaseAdminRestClient } from "./admin-rest-client.ts";
@@ -11,6 +11,8 @@ const optionalText=(row:SupabaseRow,key:string):string|undefined=>{const value=r
 const boolean=(row:SupabaseRow,key:string):boolean=>{if(typeof row[key]!=="boolean")throw new Error(`Supabase devolvió ${key} inválido.`);return row[key] as boolean};
 const number=(row:SupabaseRow,key:string):number=>{if(typeof row[key]!=="number"||!Number.isFinite(row[key]))throw new Error(`Supabase devolvió ${key} inválido.`);return row[key] as number};
 const stringArray=(row:SupabaseRow,key:string):number[]=>{if(!Array.isArray(row[key])||!(row[key] as unknown[]).every(value=>typeof value==="number"))throw new Error(`Supabase devolvió ${key} inválido.`);return row[key] as number[]};
+
+const archiveReason=(value:unknown):ProjectArchiveReason|undefined=>value==="paused"||value==="completed"?value:undefined;
 
 export interface SupabaseSnapshot { rows:Record<SupabaseTable,SupabaseRow[]>;source:MappedWorkspaceLists }
 
@@ -35,7 +37,7 @@ export class SupabaseWorkspaceStore {
         role:requiredText(row,"role") as UserRole,assignedProjectIds:[],editableProjectIds:[],active:boolean(row,"active"),entraObjectId:optionalText(row,"entra_object_id"),
         permissions:{manageUsers:boolean(row,"manage_users"),manageProjects:boolean(row,"manage_projects"),manageSchedule:boolean(row,"manage_schedule")},revision:requiredText(row,"updated_at"),
       })),
-      projects:rows.projects.map(row=>{const primary=areasById.get(requiredText(row,"primary_area_id"));return{id:requiredText(row,"id"),clientId:optionalText(row,"client_id") ?? null,name:requiredText(row,"name"),color:requiredText(row,"color"),area:primary?requiredText(primary,"name"):"",areas:[],active:boolean(row,"active"),revision:requiredText(row,"updated_at")} as Project}),
+      projects:rows.projects.map(row=>{const primary=areasById.get(optionalText(row,"primary_area_id")??"");return{id:requiredText(row,"id"),clientId:optionalText(row,"client_id") ?? null,name:requiredText(row,"name"),color:requiredText(row,"color"),area:primary?requiredText(primary,"name"):"",areas:[],active:boolean(row,"active"),archiveReason:archiveReason(row.archive_reason),archivedAt:optionalText(row,"archived_at"),archivedBy:optionalText(row,"archived_by"),revision:requiredText(row,"updated_at")} as Project}),
       areas:rows.areas.map(row=>({id:requiredText(row,"id"),projectId:requiredText(row,"project_id"),name:requiredText(row,"name"),active:boolean(row,"active"),revision:requiredText(row,"updated_at")} satisfies AreaRecord)),
       projectMembers:rows.project_members.map(row=>({id:requiredText(row,"id"),projectId:requiredText(row,"project_id"),userId:requiredText(row,"profile_id"),accessLevel:requiredText(row,"access_level") as ProjectMemberRecord["accessLevel"]})),
       initiatives:rows.initiatives.map(row=>{
@@ -67,5 +69,8 @@ export class SupabaseWorkspaceStore {
   async upsert(table:SupabaseTable,rows:SupabaseRow[],conflict="id"):Promise<void>{await this.client.upsert(table,rows,conflict)}
   async delete(table:SupabaseTable,id:string,expectedUpdatedAt?:string):Promise<void>{await this.client.deleteById(table,id,expectedUpdatedAt)}
   async deleteWhere(table:SupabaseTable,filters:Record<string,string>):Promise<void>{await this.client.deleteWhere(table,filters)}
+  async setProjectArchive(id:string,actorId:string,reason:ProjectArchiveReason|null):Promise<void>{
+    await this.rpc("set_project_archive",{p_project_id:id,p_actor_id:actorId,p_archive_reason:reason});
+  }
   async rpc<T>(name:string,parameters:Record<string,unknown>):Promise<T>{return this.client.rpc<T>(name,parameters)}
 }

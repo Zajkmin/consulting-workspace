@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,9 +17,10 @@ export function Header() {
   const [recentIds, setRecentIds] = useState<string[]>([]);
 
   const canManageUsers = currentUser?.role === "admin";
-  const canCreate =
+  const canCreate = data.projects.some((project) =>
     currentUser?.role === "admin" ||
-    (currentUser?.role === "gestor" && (currentUser?.editableProjectIds?.length ?? 0) > 0);
+    (currentUser?.role === "gestor" && currentUser.editableProjectIds?.includes(project.id)),
+  );
   const roleLabel =
     currentUser?.role === "admin"
       ? "Administrador"
@@ -49,8 +51,10 @@ export function Header() {
       <header className="topbar">
         <div className="top-left">
           <Link className="brand" href="/">
-            <span className="brand-mark">G</span>
-            <span>Gestión de Trabajo</span>
+            <span className="topbar-brand-logo">
+              <Image src="/analytico-white.svg" width={480} height={106} alt="Analytico" />
+            </span>
+            <span className="topbar-brand-name">Portal del Consultor</span>
           </Link>
 
           <nav>

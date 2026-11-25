@@ -136,7 +136,7 @@ export default function SetPasswordPage() {
       <section className="login-panel">
         <form className="login-form" onSubmit={handleSubmit}>
           <div>
-            <p className="eyebrow">Bienvenido</p>
+            {/*<p className="eyebrow">Bienvenido</p>*/}
             <h2>Crear contraseña</h2>
             <p>
               {status === "loading" && "Validando la invitación..."}

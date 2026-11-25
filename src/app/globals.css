@@ -307,3 +307,34 @@ body{min-height:100vh}
   .profile-stat-card{padding:16px 14px}
   .profile-stat-values strong{font-size:26px}
 }
+.topbar-brand-logo {
+  flex: none;
+}
+
+.topbar-brand-logo img {
+  display: block;
+  width: 124px;
+  height: auto;
+}
+
+.topbar-brand-name {
+  border-inline-start: 1px solid rgb(255 255 255 / 28%);
+  padding-inline-start: 12px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+@media (max-width: 650px) {
+  .topbar .brand {
+    gap: 6px;
+  }
+
+  .topbar-brand-logo img {
+    width: clamp(60px, 18vw, 88px);
+  }
+
+  .topbar-brand-name {
+    padding-inline-start: 6px;
+    font-size: 11px;
+  }
+}

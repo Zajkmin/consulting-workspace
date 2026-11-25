@@ -1,13 +1,14 @@
 import "server-only";
 
-import { getSupabaseAdminConfig, SupabaseAdminRestClient } from "../supabase/admin-rest-client.ts";
+import { getSupabaseAdminConfig, SupabaseAdminRestClient, SupabaseMigrationError } from "../supabase/admin-rest-client.ts";
 import { createSupabaseServerClient } from "../supabase/server.ts";
 import { resolveSupabaseProfilePrincipal, type SupabaseMembershipRow, type SupabaseProfileRow, validateSupabaseProfileMatch } from "./supabase-principal.ts";
+import { getSupabasePublicConfig } from "../supabase/public-config.ts";
 import type { ServerPrincipal } from "./authorization.ts";
 
 export interface SupabasePrincipalDiagnostic {
   principal: ServerPrincipal | null;
-  reason: "auth-user-missing" | "auth-error" | "profile-not-found" | "profile-duplicate" | "profile-inactive" | "profile-link-mismatch" | "invalid-role" | "repository-error" | "principal-ready";
+  reason: "auth-user-missing" | "auth-error" | "profile-not-found" | "profile-duplicate" | "profile-inactive" | "profile-link-mismatch" | "invalid-role" | "configuration-error" | "repository-error" | "principal-ready";
   matchCount: number;
   active: boolean;
   linkMatch: boolean;
@@ -16,8 +17,18 @@ export interface SupabasePrincipalDiagnostic {
 }
 
 export async function resolveSupabasePrincipalDiagnostics(verifiedAuthUserId: string): Promise<SupabasePrincipalDiagnostic> {
-  const admin = new SupabaseAdminRestClient(getSupabaseAdminConfig());
+  let config;
+  try {
+    config = getSupabaseAdminConfig();
+    if (config.url !== getSupabasePublicConfig().url) {
+      throw new Error("Las conexiones de Auth y Data API deben usar el mismo proyecto.");
+    }
+  } catch {
+    console.error("[auth] Configuración de Supabase inválida o incompleta.");
+    return emptyPrincipalDiagnostic("configuration-error");
+  }
 
+  const admin = new SupabaseAdminRestClient(config);
   try {
     const profiles = await admin.selectWhere<SupabaseProfileRow>(
       "profiles",
@@ -52,7 +63,7 @@ export async function resolveSupabasePrincipalDiagnostics(verifiedAuthUserId: st
     }
 
     const profile = validateSupabaseProfileMatch(profiles);
-    if (!profile) {
+    if (!profile || profile.auth_user_id !== verifiedAuthUserId) {
       const row = profiles[0];
       if (row && row.active === false) {
         return {
@@ -117,17 +128,33 @@ export async function resolveSupabasePrincipalDiagnostics(verifiedAuthUserId: st
       roleResolved: principal.role,
       membershipCount: new Set([...principal.assignedProjectIds, ...principal.editableProjectIds]).size,
     };
-  } catch {
-    return {
-      principal: null,
-      reason: "repository-error",
-      matchCount: 0,
-      active: false,
-      linkMatch: false,
-      roleResolved: null,
-      membershipCount: 0,
-    };
+  } catch (error) {
+    if (error instanceof SupabaseMigrationError) {
+      console.error("[auth] Falló la lectura en Supabase.", {
+        table: error.table,
+        status: error.httpStatus,
+        requestId: error.requestId,
+      });
+      if (error.responseCode === "PGRST106" || error.httpStatus === 401) {
+        return emptyPrincipalDiagnostic("configuration-error");
+      }
+    } else {
+      console.error("[auth] No se pudo completar la consulta de autorización.");
+    }
+    return emptyPrincipalDiagnostic("repository-error");
   }
+}
+
+function emptyPrincipalDiagnostic(reason: "configuration-error" | "repository-error"): SupabasePrincipalDiagnostic {
+  return {
+    principal: null,
+    reason,
+    matchCount: 0,
+    active: false,
+    linkMatch: false,
+    roleResolved: null,
+    membershipCount: 0,
+  };
 }
 
 export async function resolveSupabaseServerPrincipal(): Promise<ServerPrincipal | null> {

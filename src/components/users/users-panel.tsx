@@ -20,7 +20,7 @@ const byRoleAndName = (left: User, right: User) =>
   roleOrder[left.role] - roleOrder[right.role] ||
   left.name.localeCompare(right.name, "es", { sensitivity: "base" });
 export function UsersPanel() {
-  const { allData, currentUser } = useApp(),
+  const { allData, data, currentUser } = useApp(),
     router = useRouter(),
     [editing, setEditing] = useState<User | "new" | null>(null),
     [query, setQuery] = useState(""),
@@ -57,7 +57,7 @@ export function UsersPanel() {
           gestores
         </span>
         <span>
-          <b>{allData.projects.length}</b> proyectos disponibles
+          <b>{data.projects.length}</b> proyectos disponibles
         </span>
       </div>
       <div className="users-list-head">

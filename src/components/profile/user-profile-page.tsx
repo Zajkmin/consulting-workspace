@@ -45,7 +45,7 @@ function applyTheme(theme: ThemeOption) {
 }
 
 export function UserProfilePage() {
-  const { currentUser, allData } = useApp();
+  const { currentUser, data, allData } = useApp();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -86,20 +86,20 @@ export function UserProfilePage() {
 
   const myInitiatives = useMemo(
     () =>
-      allData.initiatives.filter((initiative) =>
+      data.initiatives.filter((initiative) =>
         (initiative.owners?.length ? initiative.owners : [initiative.owner]).includes(ownName),
       ),
-    [allData.initiatives, ownName],
+    [data.initiatives, ownName],
   );
 
   const myVersions = useMemo(
-    () => allData.versions.filter((version) => version.owner === ownName),
-    [allData.versions, ownName],
+    () => data.versions.filter((version) => version.owner === ownName),
+    [data.versions, ownName],
   );
 
   const myTasks = useMemo(
-    () => allData.tasks.filter((task) => task.assignedTo === ownName),
-    [allData.tasks, ownName],
+    () => data.tasks.filter((task) => task.assignedTo === ownName),
+    [data.tasks, ownName],
   );
 
   const initiativeStatuses = myInitiatives.map((initiative) =>

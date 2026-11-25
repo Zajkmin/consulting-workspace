@@ -7,9 +7,10 @@ import "./management.css";
 import "./agenda.css";
 import "./agenda-navigation.css";
 import "./task-table.css";
+import "./analytico-theme.css";
 
 export const metadata: Metadata = {
-  title: "Gestión de Trabajo — Proyectos y agenda",
+  title: "Consultores Analytico",
   description: "Espacio para gestionar proyectos, iniciativas, tareas y agenda de trabajo.",
 };
 

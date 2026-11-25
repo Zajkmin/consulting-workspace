@@ -39,7 +39,8 @@ const taskPriorityClass = (priority: Task["priority"]) =>
   priority === "Alta" ? "high" : priority === "Media" ? "medium" : "low";
 export function Hierarchy({ projectId }: { projectId: string }) {
   const {
-      data,
+      data: activeData,
+      projectData,
       currentUser,
       saveTask,
       saveHierarchy,
@@ -73,6 +74,8 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [editing]);
+  const project = projectData.projects.find((item) => item.id === projectId);
+  const data = project?.active === false ? projectData : activeData;
   const sourceI = editing ? draftI : data.initiatives,
     sourceV = editing ? draftV : data.versions,
     sourceT = editing ? draftT : data.tasks,
@@ -89,7 +92,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
         const bPriority = all.find((item) => item.id === b.initiativeId)?.impact ?? "Bajo";
         return priorityOrder[aPriority] - priorityOrder[bPriority];
       }),
-    project = data.projects.find((p) => p.id === projectId),
     areas = [
       "Todas",
       ...new Set([...(project?.areas ?? []), ...all.map((i) => i.area)]),
@@ -146,10 +148,11 @@ export function Hierarchy({ projectId }: { projectId: string }) {
         (filters.impact === "all" || i.impact === filters.impact)
       );
     }),
-    canEdit =
+    canEdit = project?.active === true && (
       currentUser?.role === "admin" ||
       (currentUser?.role === "gestor" &&
-        currentUser.editableProjectIds?.includes(projectId)),
+        currentUser.editableProjectIds?.includes(projectId))
+    ),
     people = data.users
       .filter(
         (user) =>
@@ -672,8 +675,8 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                           type="checkbox"
                                           checked={t.status === "Completada"}
                                           disabled={
-                                            !canEdit &&
-                                            t.assignedTo !== currentUser?.name
+                                            project?.active === false ||
+                                            (!canEdit && t.assignedTo !== currentUser?.name)
                                           }
                                           aria-label={`Marcar ${t.title} como completada`}
                                           onChange={(event) =>
