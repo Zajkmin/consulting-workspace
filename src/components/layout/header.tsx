@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -49,8 +50,10 @@ export function Header() {
       <header className="topbar">
         <div className="top-left">
           <Link className="brand" href="/">
-            <span className="brand-mark">G</span>
-            <span>Gestión de Trabajo</span>
+            <span className="topbar-brand-logo">
+              <Image src="/analytico-white.svg" width={480} height={106} alt="Analytico" />
+            </span>
+            <span className="topbar-brand-name">Portal del Consultor</span>
           </Link>
 
           <nav>

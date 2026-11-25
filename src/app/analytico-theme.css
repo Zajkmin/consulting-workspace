@@ -32,7 +32,6 @@
   --analytico-tint: #003456;
 }
 
-.topbar { background: var(--surface); border-bottom-color: var(--line); }
 .brand, h1, .project-title, .entity-name b, .task-name { color: var(--text-strong); }
 .brand-mark, .primary, .summary-card.emphasis, .toast {
   background: var(--analytico-primary);
@@ -40,8 +39,7 @@
 }
 .summary-card.emphasis { border-color: var(--analytico-primary); }
 .summary-card.emphasis small { color: #eaf1f4; }
-.topbar nav a { color: var(--muted); }
-.topbar nav a.active, .table-controls button.active, .filters button.active {
+.table-controls button.active, .filters button.active {
   background: var(--surface-secondary);
   color: var(--text-strong);
   border-color: var(--analytico-accent);
@@ -113,3 +111,41 @@ tbody tr:hover, .project-card:hover, .users-row:not(.users-head):hover,
 .login-brand .eyebrow, .login-brand p:not(.eyebrow), .login-brand > small { color: #eaf1f4; }
 .login-form > div:first-child > p:last-child, .demo-access, .demo-access b { color: var(--muted); }
 /* Conserva los colores semánticos y los colores asignados a cada proyecto. */
+
+.topbar {
+  --topbar-blue: #003456;
+  --topbar-highlight: #54eef2;
+  background: var(--topbar-blue);
+  border-bottom-color: rgb(255 255 255 / 16%);
+}
+
+.topbar .brand {
+  color: #fff;
+}
+
+.topbar nav a {
+  color: #d6e6ed;
+}
+
+.topbar nav a:hover,
+.topbar nav a.active,
+.topbar :is(.contextual, .avatar):hover {
+  background: #194b6a;
+  color: #fff;
+}
+
+.topbar nav a.active {
+  box-shadow: inset 0 -2px var(--topbar-highlight);
+}
+
+.topbar .contextual,
+.topbar .avatar {
+  background: transparent;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 55%);
+}
+
+.topbar :is(.brand, nav a, .contextual, .avatar):focus-visible {
+  outline: 2px solid var(--topbar-highlight);
+  outline-offset: 3px;
+}
