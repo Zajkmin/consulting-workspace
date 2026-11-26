@@ -1,5 +1,6 @@
 import { AppProvider } from "@/hooks/use-app";
 import { AppShell } from "@/components/layout/app-shell";
+import { asuncionDate } from "@/lib/dates";
 import type { User } from "@/types";
 import { loadWorkspace } from "@/app/actions/workspace";
 import { requireServerPrincipal } from "@/services/auth/authorization";
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   };
 
   return (
-    <AppProvider authenticatedUser={authenticatedUser} initialWorkspace={remoteData} projectArchiving={process.env.DATA_PROVIDER?.trim().toLowerCase() === "supabase"}>
+    <AppProvider initialToday={asuncionDate()} authenticatedUser={authenticatedUser} initialWorkspace={remoteData} projectArchiving={process.env.DATA_PROVIDER?.trim().toLowerCase() === "supabase"}>
       <AppShell>{children}</AppShell>
     </AppProvider>
   );

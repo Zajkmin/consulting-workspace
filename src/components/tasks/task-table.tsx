@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { effectiveTaskStatus } from "@/lib/format";
 import { StatusPill } from "@/components/ui/status-pill";
 import { QuickTaskAction } from "./quick-task-action";
+import { taskAssigneeLabel, taskAssigneeNames } from "@/lib/task-assignees";
 import type { Task } from "@/types";
 
 const priority = { Alta: 0, Media: 1, Baja: 2 } as const;
 
 export function TaskTable() {
-  const { data } = useApp();
+  const { data, today } = useApp();
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("Todas");
   const [projectId, setProjectId] = useState("Todos");
@@ -17,7 +19,7 @@ export function TaskTable() {
 
   const owners = [
     "Todas",
-    ...new Set(data.tasks.map((task) => task.assignedTo)),
+    ...new Set(data.tasks.flatMap((task) => taskAssigneeNames(task, data.users))),
   ].sort((left, right) =>
     left === "Todas"
       ? -1
@@ -44,10 +46,10 @@ export function TaskTable() {
           const version = data.versions.find(
             (item) => item.id === task.versionId,
           );
-          const searchable = `${task.title} ${task.description} ${project?.name ?? ""} ${initiative?.name ?? ""} ${version?.name ?? ""} ${task.assignedTo}`.toLowerCase();
+          const searchable = `${task.title} ${task.description} ${project?.name ?? ""} ${initiative?.name ?? ""} ${version?.name ?? ""} ${taskAssigneeLabel(task, data.users)}`.toLowerCase();
           return (
             task.status !== "Completada" &&
-            (owner === "Todas" || task.assignedTo === owner) &&
+            (owner === "Todas" || taskAssigneeNames(task, data.users).includes(owner)) &&
             (projectId === "Todos" || task.projectId === projectId) &&
             searchable.includes(query.trim().toLowerCase())
           );
@@ -127,6 +129,7 @@ export function TaskTable() {
                 const version = data.versions.find(
                   (item) => item.id === task.versionId,
                 );
+                const assignees = taskAssigneeLabel(task, data.users);
                 return (
                   <tr key={task.id} onClick={() => setSelected(task)}>
                     <td><StatusPill value={task.priority} /></td>
@@ -137,11 +140,11 @@ export function TaskTable() {
                     <td className="task-name wrap-cell">{task.title}</td>
                     <td className="owner-cell wrap-cell">
                       <span className="mini-avatar">
-                        {task.assignedTo.slice(0, 2).toUpperCase()}
+                        {assignees === "Sin asignar" ? "—" : assignees.slice(0, 2).toUpperCase()}
                       </span>
-                      <span>{task.assignedTo}</span>
+                      <span>{assignees}</span>
                     </td>
-                    <td><StatusPill value={task.status} /></td>
+                    <td><StatusPill value={effectiveTaskStatus(task, today)} /></td>
                   </tr>
                 );
               })}

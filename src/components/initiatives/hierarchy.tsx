@@ -1,9 +1,11 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, @typescript-eslint/no-unused-expressions */
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { taskAssigneeLabel, taskAssigneeNames } from "@/lib/task-assignees";
 import { useApp } from "@/hooks/use-app";
 import {
   effectiveInitiativeStatus,
+  effectiveTaskStatus,
   effectiveVersionStatus,
   formatDate,
   initiativeProgress,
@@ -41,14 +43,14 @@ export function Hierarchy({ projectId }: { projectId: string }) {
   const {
       data: activeData,
       projectData,
+      allData,
+      today,
       currentUser,
       saveTask,
       saveHierarchy,
       deleteInitiative,
       deleteVersion,
       deleteTask,
-      notice,
-      clearNotice,
     } = useApp(),
     [openI, setOpenI] = useState(new Set<string>()),
     [openV, setOpenV] = useState(new Set<string>()),
@@ -64,11 +66,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
     [areaForm, setAreaForm] = useState(false);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(clearNotice, 3200);
-    return () => clearTimeout(timer);
-  }, [notice, clearNotice]);
-  useEffect(() => {
     if (!editing) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", warn);
@@ -79,12 +76,14 @@ export function Hierarchy({ projectId }: { projectId: string }) {
   const sourceI = editing ? draftI : data.initiatives,
     sourceV = editing ? draftV : data.versions,
     sourceT = editing ? draftT : data.tasks,
+    calculationTasks = editing ? draftT : allData.tasks,
+    calculationData = { versions: sourceV, tasks: calculationTasks },
     all = sourceI.filter((i) => i.projectId === projectId),
     priorityOrder = { Alto: 0, Medio: 1, Bajo: 2 },
     pendingVersions = sourceV
       .filter(
         (version) =>
-          effectiveVersionStatus(version, sourceT) !== "Completada" &&
+          effectiveVersionStatus(version, calculationTasks, today) !== "Completada" &&
           all.some((initiative) => initiative.id === version.initiativeId),
       )
       .sort((a, b) => {
@@ -100,13 +99,13 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       ...new Set(all.flatMap((i) => (i.owners?.length ? i.owners : [i.owner]))),
     ].sort(),
     versionOwnerOptions = [...new Set(sourceV.map((v) => v.owner))].sort(),
-    taskOwnerOptions = [...new Set(sourceT.map((t) => t.assignedTo))].sort(),
+    taskOwnerOptions = [...new Set(sourceT.flatMap((t) => taskAssigneeNames(t, data.users)))].sort(),
     visibleTasks = (versionId: string) =>
       sourceT.filter(
         (task) =>
           task.versionId === versionId &&
           (filters.taskOwner === "all" ||
-            task.assignedTo === filters.taskOwner),
+            taskAssigneeNames(task, data.users).includes(filters.taskOwner)),
       ),
     visibleVersions = (initiativeId: string) =>
       sourceV.filter(
@@ -131,12 +130,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
         (areaFilter === "Todas" || i.area === areaFilter) &&
         (!filters.text || text.includes(filters.text.toLowerCase())) &&
         matchesProgress(
-          initiativeProgress(i, {
-            ...data,
-            initiatives: sourceI,
-            versions: sourceV,
-            tasks: sourceT,
-          }),
+          initiativeProgress(i, calculationData),
         ) &&
         (filters.initiativeOwner === "all" ||
           names.includes(filters.initiativeOwner)) &&
@@ -144,7 +138,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
           matchingVersions.length > 0) &&
         (!filters.start || i.startDate === filters.start) &&
         (!filters.deadline || i.deadline === filters.deadline) &&
-        (filters.status === "all" || i.status === filters.status) &&
+        (filters.status === "all" || effectiveInitiativeStatus(i, sourceV, calculationTasks, today) === filters.status) &&
         (filters.impact === "all" || i.impact === filters.impact)
       );
     }),
@@ -263,7 +257,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
       <section className="pending-section">
         <div className="list-title pending-title">
           <div>
-            <h2>Pendientes</h2>
+            <h2>Versiones abiertas</h2>
           </div>
           <span>{pendingVersions.length} versiones</span>
         </div>
@@ -305,12 +299,12 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                     <td>{version.owner}</td>
                     <td>{formatDate(version.startDate)}</td>
                     <td>{formatDate(version.deadline)}</td>
-                    <td><Progress value={versionProgress(version.id, data)} /></td>
+                    <td><Progress value={versionProgress(version.id, calculationData)} /></td>
                   </tr>
                 );
               })
             ) : (
-              <tr><td className="pending-empty" colSpan={8}>No hay versiones pendientes.</td></tr>
+              <tr><td className="pending-empty" colSpan={8}>No hay versiones abiertas.</td></tr>
             )}
               </tbody>
             </table>
@@ -538,19 +532,19 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                       }}
                     />
                   ) : (
-                    <div className={`entity-row${initiativeProgress(i, data) === 100 ? " completed-entity" : ""}`}>
+                    <div className={`entity-row${initiativeProgress(i, calculationData) === 100 ? " completed-entity" : ""}`}>
                       <EntityName
                         open={openI.has(i.id)}
                         onToggle={() => toggle(openI, i.id, setOpenI)}
                         title={i.name}
                         subtitle={`${i.area} · ${i.versionIds.length} versiones`}
                       />
-                      <Progress value={initiativeProgress(i, data)} />
+                      <Progress value={initiativeProgress(i, calculationData)} />
                       <Owners names={i.owners?.length ? i.owners : [i.owner]} />
                       <span>{formatDate(i.startDate)}</span>
                       <span>{formatDate(i.deadline)}</span>
                       <span>
-                        <StatusPill value={effectiveInitiativeStatus(i, data.versions, data.tasks)} />
+                        <StatusPill value={effectiveInitiativeStatus(i, sourceV, calculationTasks, today)} />
                       </span>
                       <span className="impact">{i.impact}</span>
                     </div>
@@ -592,7 +586,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                 }}
                               />
                             ) : (
-                              <div id={`version-row-${v.id}`} className={`entity-row version-row${versionProgress(v.id, data) === 100 ? " completed-entity" : ""}`}>
+                              <div id={`version-row-${v.id}`} className={`entity-row version-row${versionProgress(v.id, calculationData) === 100 ? " completed-entity" : ""}`}>
                                 <div className="entity-name indent">
                                   <button
                                     className={
@@ -610,15 +604,15 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                     <small>{v.taskIds.length} tareas</small>
                                   </div>
                                 </div>
-                                <Progress value={versionProgress(v.id, data)} />
+                                <Progress value={versionProgress(v.id, calculationData)} />
                                 <Owners names={[v.owner]} />
                                 <span>{formatDate(v.startDate)}</span>
                                 <span>{formatDate(v.deadline)}</span>
                                 <span>
-                                  <StatusPill value={effectiveVersionStatus(v, data.tasks)} />
+                                  <StatusPill value={effectiveVersionStatus(v, calculationTasks, today)} />
                                 </span>
                                 <span className="validation-cell">
-                                  {effectiveVersionStatus(v, data.tasks) === "En revisión" && canEdit ? (
+                                  {effectiveVersionStatus(v, calculationTasks, today) === "En revisión" && canEdit ? (
                                     <label className="validation-check">
                                       <input type="checkbox" checked={Boolean(v.validated)} onChange={(event) => toggleValidation(v.id, event.target.checked)} />
                                       <span>¿Ya validado?</span>
@@ -695,6 +689,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                           {t.title}
                                           <small>
                                             {t.priority}
+                                            {effectiveTaskStatus(t, today) === "Retrasada" && <> · <span className="overdue">Atrasada</span></>}
                                             {t.dependencies.length
                                               ? ` · depende de ${t.dependencies.length}`
                                               : ""}
@@ -703,7 +698,7 @@ export function Hierarchy({ projectId }: { projectId: string }) {
                                         <span className="task-description">
                                           {t.description || "Sin descripción"}
                                         </span>
-                                        <Owners names={[t.assignedTo]} />
+                                        <Owners names={[taskAssigneeLabel(t, data.users)]} />
                                         <span>{taskProgress(t)}%</span>
                                       </div>
                                     ),
@@ -743,11 +738,6 @@ export function Hierarchy({ projectId }: { projectId: string }) {
           </div>
         </div>
       </section>
-      {notice && (
-        <div className="toast" role="status">
-          {notice}
-        </div>
-      )}
       <Modal open={!!form} onClose={() => setForm(null)} title="Nueva tarea">
         {form && (
           <TaskForm

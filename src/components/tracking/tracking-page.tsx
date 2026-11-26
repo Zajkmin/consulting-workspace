@@ -1,15 +1,18 @@
 "use client";
 
 import { useApp } from "@/hooks/use-app";
-import { effectiveVersionStatus } from "@/lib/format";
+import { calendarDate } from "@/lib/dates";
+import { countStatuses, effectiveTaskStatus, effectiveVersionStatus, projectProgress, taskProgress, versionProgress } from "@/lib/format";
+import type { TaskStatus } from "@/types";
 import { useMemo, useState } from "react";
 
-type TrackingStatus = "Pendiente" | "En curso" | "En revisión" | "Retrasado" | "Completado";
+const trackingStatusLabel = (status: TaskStatus) => status === "Retrasada" ? "Atrasada" : status;
 
 type TaskItem = {
   id: string;
   title: string;
-  status: string;
+  status: TaskStatus;
+  completed: boolean;
   progress: number;
   deadline: string;
 };
@@ -22,7 +25,7 @@ type DeliverableGroup = {
   startDate: string;
   deadline: string;
   progress: number;
-  status: TrackingStatus;
+  status: TaskStatus;
   tasks: TaskItem[];
 };
 
@@ -39,60 +42,38 @@ type ProjectBucket = {
   initiatives: InitiativeBucket[];
 };
 
-const statusColor: Record<TrackingStatus, string> = {
+const statusColor: Record<TaskStatus, string> = {
   Pendiente: "pending",
   "En curso": "active",
   "En revisión": "review",
-  Retrasado: "late",
-  Completado: "done",
+  Retrasada: "late",
+  Completada: "done",
 };
-
-const toTrackingStatus = (status: ReturnType<typeof effectiveVersionStatus>): TrackingStatus =>
-  status === "Completada" ? "Completado" : status === "Retrasada" ? "Retrasado" : status;
-
-const trackingStatusLabel = (status: TrackingStatus) => status === "Retrasado" ? "Atrasado" : status;
 
 const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-const dateValue = (value: string) => {
-  if (!value) return Number.POSITIVE_INFINITY;
-  return new Date(`${value}T12:00:00`).getTime();
-};
+const dateValue = (value: string) => calendarDate(value)?.getTime() ?? Number.POSITIVE_INFINITY;
 
 const formatShortDate = (value: string) => {
-  if (!value) return "Sin fecha";
-  const date = new Date(`${value}T12:00:00`);
-  return `${date.getDate()} ${monthNames[date.getMonth()]}`;
+  const date = calendarDate(value);
+  return date ? `${date.getUTCDate()} ${monthNames[date.getUTCMonth()]}` : "Sin fecha";
 };
 
-const deriveStatus = (versionStatus: string, tasks: { status: string }[]) => {
-  const normalized = tasks.map((task) => task.status);
-  if (versionStatus === "Completada" || normalized.every((status) => status === "Completada")) {
-    return "Completado" as const;
-  }
-  if (versionStatus === "Retrasada" || normalized.some((status) => status === "Retrasada")) {
-    return "Retrasado" as const;
-  }
-  if (versionStatus === "En curso" || normalized.some((status) => status === "En curso" || status === "En revisión")) {
-    return "En curso" as const;
-  }
-  return "Pendiente" as const;
-};
-
-const buildRange = (deliverables: DeliverableGroup[]) => {
+const buildRange = (deliverables: DeliverableGroup[], today: string) => {
   const values = deliverables.flatMap((item) => [dateValue(item.startDate), dateValue(item.deadline)]).filter((value) => Number.isFinite(value));
   if (!values.length) {
-    return { start: new Date(), end: new Date() };
+    const day = calendarDate(today)!;
+    return { start: day, end: day };
   }
   const min = new Date(Math.min(...values));
   const max = new Date(Math.max(...values));
-  min.setDate(min.getDate() - 3);
-  max.setDate(max.getDate() + 3);
+  min.setUTCDate(min.getUTCDate() - 3);
+  max.setUTCDate(max.getUTCDate() + 3);
   return { start: min, end: max };
 };
 
 export function TrackingPage({ projectId }: { projectId?: string }) {
-  const { allData, currentUser } = useApp();
+  const { allData, currentUser, today } = useApp();
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   const visibleProjects = useMemo(() => {
@@ -123,23 +104,13 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
       })
       .map((version) => {
         const initiative = allData.initiatives.find((item) => item.id === version.initiativeId);
-        const project = initiative ? allData.projects.find((item) => item.id === initiative.projectId) : undefined;
         const tasks = allData.tasks.filter(
           (task) =>
             task.versionId === version.id &&
             task.projectId === initiative?.projectId,
         );
 
-        const progress =
-          tasks.length > 0
-            ? Math.round(tasks.reduce((total, task) => total + task.progress, 0) / tasks.length)
-            : version.status === "Completada"
-              ? 100
-              : version.status === "Retrasada"
-                ? 35
-                : version.status === "En curso"
-                  ? 60
-                  : 20;
+        const progress = versionProgress(version.id, { tasks });
 
         return {
           id: version.id,
@@ -149,18 +120,19 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
           startDate: version.startDate || initiative?.startDate || "",
           deadline: version.deadline || initiative?.deadline || "",
           progress,
-          status: toTrackingStatus(effectiveVersionStatus(version, tasks)),
+          status: effectiveVersionStatus(version, tasks, today),
           tasks: tasks.map((task) => ({
             id: task.id,
             title: task.title,
-            status: task.status,
-            progress: task.progress,
+            status: effectiveTaskStatus(task, today),
+            completed: task.status === "Completada",
+            progress: taskProgress(task),
             deadline: task.deadline,
           })),
         };
       })
       .filter((version) => Boolean(version));
-  }, [allData, visibleProjects]);
+  }, [allData, visibleProjects, today]);
 
   const projectGroups = useMemo<ProjectBucket[]>(() => {
     const grouped = new Map<string, ProjectBucket>();
@@ -191,38 +163,35 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
 
     return Array.from(grouped.values()).map((project) => ({
       ...project,
-      progress: Math.round(
-        project.initiatives.flatMap((initiative) => initiative.versions).reduce((total, item) => total + item.progress, 0) /
-          Math.max(project.initiatives.flatMap((initiative) => initiative.versions).length, 1),
-      ),
+      progress: projectProgress(allData.initiatives.filter(item => item.projectId === project.id), allData),
     }));
-  }, [allData.initiatives, allData.projects, deliverables]);
+  }, [allData, deliverables]);
 
   const summary = useMemo(() => {
-    const completed = deliverables.filter((item) => item.status === "Completado").length;
-    const inProgress = deliverables.filter((item) => item.status === "En curso").length;
-    const pending = deliverables.filter((item) => item.status === "Pendiente").length;
-    const delayed = deliverables.filter((item) => item.status === "Retrasado").length;
-    const overallProgress = deliverables.length
-      ? Math.round(deliverables.reduce((total, item) => total + item.progress, 0) / deliverables.length)
-      : 0;
+    const counts = countStatuses(deliverables.map(item => item.status));
+    const projects = new Set(visibleProjects.map(project => project.id));
+    return {
+      completed: counts.Completada,
+      inProgress: counts["En curso"] + counts["En revisión"],
+      pending: counts.Pendiente,
+      delayed: counts.Retrasada,
+      overallProgress: projectProgress(allData.initiatives.filter(item => projects.has(item.projectId)), allData),
+    };
+  }, [allData, deliverables, visibleProjects]);
 
-    return { completed, inProgress, pending, delayed, overallProgress };
-  }, [deliverables]);
-
-  const range = useMemo(() => buildRange(deliverables), [deliverables]);
+  const range = useMemo(() => buildRange(deliverables, today), [deliverables, today]);
   const totalMs = Math.max(range.end.getTime() - range.start.getTime(), 1);
 
   const monthTicks = useMemo(() => {
     const ticks: { label: string; left: number }[] = [];
-    const cursor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
+    const cursor = new Date(Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth(), 1));
     while (cursor <= range.end) {
-      const left = ((new Date(cursor.getFullYear(), cursor.getMonth(), 1).getTime() - range.start.getTime()) / totalMs) * 100;
+      const left = ((cursor.getTime() - range.start.getTime()) / totalMs) * 100;
       ticks.push({
-        label: `${monthNames[cursor.getMonth()]} ${cursor.getFullYear()}`,
+        label: `${monthNames[cursor.getUTCMonth()]} ${cursor.getUTCFullYear()}`,
         left,
       });
-      cursor.setMonth(cursor.getMonth() + 1);
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
     }
     return ticks;
   }, [range, totalMs]);
@@ -257,7 +226,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
           <strong>{summary.completed}</strong>
         </div>
         <div className="summary-card">
-          <small>En curso</small>
+          <small>En curso o revisión</small>
           <strong>{summary.inProgress}</strong>
         </div>
         <div className="summary-card">
@@ -312,8 +281,8 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
                     </div>
                     <div className="initiative-lane" style={{ height: `${laneHeight}px` }}>
                       {initiative.versions.map((version) => {
-                        const start = dateValue(version.startDate);
-                        const end = dateValue(version.deadline);
+                        const start = calendarDate(version.startDate)?.getTime() ?? calendarDate(version.deadline)?.getTime() ?? range.start.getTime();
+                        const end = calendarDate(version.deadline)?.getTime() ?? start;
                         const left = ((Math.min(start, end) - range.start.getTime()) / totalMs) * 100;
                         const width = Math.max(((Math.abs(end - start) || 1) / totalMs) * 100, 10);
                         const statusClass = statusColor[version.status];
@@ -357,7 +326,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
 
           <div className="detail-grid">
             <div className="donut-wrap">
-              <div className="donut-chart" style={{ background: `conic-gradient(${activeVersion.progress >= 100 ? "#0F6E56" : activeVersion.status === "Retrasado" ? "#B91C1C" : "#B45309"} ${activeVersion.progress * 3.6}deg, #e9ecef 0deg)` }}>
+              <div className="donut-chart" style={{ background: `conic-gradient(${activeVersion.progress >= 100 ? "#0F6E56" : activeVersion.status === "Retrasada" ? "#B91C1C" : "#B45309"} ${activeVersion.progress * 3.6}deg, #e9ecef 0deg)` }}>
                 <span>{activeVersion.progress}%</span>
               </div>
               <small>avance</small>
@@ -370,7 +339,7 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
               </div>
               <div className="stat-box">
                 <small>Completadas</small>
-                <strong>{activeVersion.tasks.filter((task) => task.progress >= 100).length}</strong>
+                <strong>{activeVersion.tasks.filter((task) => task.completed).length}</strong>
               </div>
               <div className="stat-box">
                 <small>Inicio</small>
@@ -389,10 +358,10 @@ export function TrackingPage({ projectId }: { projectId?: string }) {
             <div className="task-list-panel">
               {activeVersion.tasks.map((task) => (
                 <div key={task.id} className="task-row">
-                  <span className={`task-dot ${task.progress >= 100 ? "done" : "pending"}`} />
+                  <span className={`task-dot ${task.completed ? "done" : "pending"}`} />
                   <div className="task-copy">
                     <strong>{task.title}</strong>
-                    <small>{task.status}</small>
+                    <small>{trackingStatusLabel(task.status)}</small>
                   </div>
                   <span className="task-progress-value">{task.progress}%</span>
                 </div>

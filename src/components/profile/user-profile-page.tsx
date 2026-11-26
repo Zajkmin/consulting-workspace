@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { setThemePreference, useThemePreference } from "@/hooks/use-theme-preference";
+import type { ThemeOption } from "@/lib/theme";
 import { useApp } from "@/hooks/use-app";
 import { createSupabaseBrowserClient } from "@/services/supabase/client";
 import {
@@ -9,14 +11,10 @@ import {
   effectiveVersionStatus,
 } from "@/lib/format";
 
-type ThemeOption = "claro" | "oscuro" | "sistema";
-
 type FeedbackState = {
   type: "success" | "error";
   message: string;
 };
-
-const THEME_KEY = "consulting-theme";
 
 function initialsFor(value: string) {
   const names = value.trim().split(/\s+/).filter(Boolean);
@@ -28,52 +26,14 @@ function initialsFor(value: string) {
     .slice(0, 2) || "U";
 }
 
-function readThemePreference(): ThemeOption {
-  if (typeof window === "undefined") return "claro";
-  const value = window.localStorage.getItem(THEME_KEY);
-  return value === "claro" || value === "oscuro" || value === "sistema"
-    ? value
-    : "claro";
-}
-
-function applyTheme(theme: ThemeOption) {
-  if (typeof document === "undefined") return;
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const nextTheme =
-    theme === "claro" ? "light" : theme === "oscuro" ? "dark" : systemDark ? "dark" : "light";
-  document.documentElement.dataset.theme = nextTheme;
-}
-
 export function UserProfilePage() {
-  const { currentUser, data, allData } = useApp();
+  const { currentUser, data, allData, today } = useApp();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<FeedbackState | null>(null);
-  const [theme, setTheme] = useState<ThemeOption>(() => {
-    const initialTheme = readThemePreference();
-    applyTheme(initialTheme);
-    return initialTheme;
-  });
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const onSystemChange = () => {
-      if (readThemePreference() === "sistema") {
-        applyTheme("sistema");
-      }
-    };
-
-    mediaQuery.addEventListener("change", onSystemChange);
-    return () => mediaQuery.removeEventListener("change", onSystemChange);
-  }, []);
-
-  const handleThemeChange = (nextTheme: ThemeOption) => {
-    setTheme(nextTheme);
-    window.localStorage.setItem(THEME_KEY, nextTheme);
-    applyTheme(nextTheme);
-  };
+  const theme = useThemePreference();
 
   const ownName = currentUser?.name ?? "Usuario";
   const ownEmail = currentUser?.email ?? "";
@@ -103,10 +63,10 @@ export function UserProfilePage() {
   );
 
   const initiativeStatuses = myInitiatives.map((initiative) =>
-    effectiveInitiativeStatus(initiative, allData.versions, allData.tasks),
+    effectiveInitiativeStatus(initiative, allData.versions, allData.tasks, today),
   );
   const versionStatuses = myVersions.map((version) =>
-    effectiveVersionStatus(version, allData.tasks),
+    effectiveVersionStatus(version, allData.tasks, today),
   );
 
   const summary = {
@@ -358,7 +318,7 @@ export function UserProfilePage() {
                 type="radio"
                 name="theme"
                 checked={theme === option}
-                onChange={() => handleThemeChange(option)}
+                onChange={() => setThemePreference(option)}
               />
               <span>
                 {option === "claro" ? "Claro" : option === "oscuro" ? "Oscuro" : "Sistema"}

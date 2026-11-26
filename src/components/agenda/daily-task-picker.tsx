@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useState } from "react";
+import { useConfirmedSave } from "@/hooks/use-confirmed-save";
 import { useApp } from "@/hooks/use-app";
 import { isCurrentUserTaskForAgenda } from "@/lib/user-name-match";
 const priorityClass = (priority: "Alta" | "Media" | "Baja") =>
@@ -13,6 +14,7 @@ export function DailyTaskPicker({
   date: string;
   onDone: () => void;
 }) {
+  const { save: confirmSave, saving } = useConfirmedSave(onDone);
   const { data, currentUser, saveBlock, deleteBlock } = useApp(),
     dayBlocks = data.schedule.filter((block) => block.date === date),
     [selected, setSelected] = useState(
@@ -47,13 +49,13 @@ export function DailyTaskPicker({
         next.has(id) ? next.delete(id) : next.add(id);
         return next;
       }),
-    save = () => {
-      dayBlocks.forEach((block) => {
-        if (!selected.has(block.taskId)) deleteBlock(block.id);
-      });
-      selected.forEach((taskId) => {
-        if (!dayBlocks.some((block) => block.taskId === taskId))
-          saveBlock({
+    save = () => confirmSave(async () => {
+      for (const block of dayBlocks) {
+        if (!selected.has(block.taskId) && (await deleteBlock(block.id)) === false) return false;
+      }
+      for (const taskId of selected) {
+        if (!dayBlocks.some((block) => block.taskId === taskId)) {
+          const saved = await saveBlock({
             id: crypto.randomUUID(),
             taskId,
             date,
@@ -63,9 +65,11 @@ export function DailyTaskPicker({
             completed: false,
             outcome: "planned",
           });
-      });
-      onDone();
-    };
+          if (saved === false) return false;
+        }
+      }
+      return true;
+    });
   return (
     <div>
       <p className="picker-help">
@@ -94,6 +98,7 @@ export function DailyTaskPicker({
               <input
                 type="checkbox"
                 checked={selected.has(task.id)}
+                disabled={saving}
                 onChange={() => toggle(task.id)}
               />
               <i style={{ background: project?.color }} />
@@ -112,11 +117,11 @@ export function DailyTaskPicker({
         )}
       </div>
       <div className="modal-actions">
-        <button type="button" className="button quiet" onClick={onDone}>
+        <button type="button" className="button quiet" onClick={onDone} disabled={saving}>
           Cancelar
         </button>
-        <button type="button" className="button primary" onClick={save}>
-          Guardar selección
+        <button type="button" className="button primary" onClick={save} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar selección"}
         </button>
       </div>
     </div>

@@ -1,8 +1,9 @@
 "use client";
 /* eslint-disable react-hooks/purity */
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useApp } from "@/hooks/use-app";
+import { useConfirmedSave } from "@/hooks/use-confirmed-save";
 import type { Priority, TaskStatus } from "@/types";
 type DraftTask = {
   id: string;
@@ -19,7 +20,7 @@ export function InitiativeForm({
   onDone: () => void;
   defaultProjectId?: string;
 }) {
-  const savingRef = useRef(false);
+  const { save, saving } = useConfirmedSave(onDone);
   const pathname = usePathname(),
     contextualProjectId = pathname.startsWith("/proyectos/")
       ? pathname.split("/")[2]
@@ -49,8 +50,7 @@ export function InitiativeForm({
     [versionStartDate, setVersionStartDate] = useState(today),
     [versionDeadline, setVersionDeadline] = useState(defaultEnd),
     [tasks, setTasks] = useState<DraftTask[]>([]),
-    [error, setError] = useState(""),
-    [saving, setSaving] = useState(false);
+    [error, setError] = useState("");
   const owners = allData.users.filter(
       (u) =>
         u.active &&
@@ -77,8 +77,7 @@ export function InitiativeForm({
       setTasks((current) =>
         current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
       );
-  const submit = async () => {
-    if (savingRef.current) return;
+  const submit = () => {
     if (!responsible.length)
       return setError("Seleccioná al menos un responsable para la iniciativa.");
     if (deadline && deadline < startDate)
@@ -93,12 +92,10 @@ export function InitiativeForm({
       );
     if (!projectId || !area)
       return setError("Seleccioná un proyecto y un área.");
-    savingRef.current = true;
-    setSaving(true);
     const initiativeId = crypto.randomUUID(),
       versionId = crypto.randomUUID(),
       primary = responsible[0];
-    const saved = await addInitiativeBundle({
+    void save(() => addInitiativeBundle({
       initiative: {
         id: initiativeId,
         projectId,
@@ -147,10 +144,7 @@ export function InitiativeForm({
               subtasks: [],
             }))
         : [],
-    });
-    savingRef.current = false;
-    setSaving(false);
-    if (saved !== false) onDone();
+    }));
   };
   return (
     <form

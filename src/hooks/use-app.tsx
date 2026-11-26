@@ -1,17 +1,19 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { initialData } from "@/data/mocks";
 import { localDataStore } from "@/services/storage";
 import type { AppData, DailyTaskOutcome, DeliverableVersion, Initiative, InitiativeBundle, Project, ProjectArchiveReason, ScheduleBlock, Task, User, WorkPreferences } from "@/types";
+import { settleWorkspaceSave } from "@/lib/workspace-feedback";
+import { asuncionDate } from "@/lib/dates";
 import { selectProjectWorkspace } from "@/lib/project-archive";
 import * as remoteActions from "@/app/actions/workspace";
 
 type Ctx = {
-  data: AppData; projectData: AppData; allData: AppData; canArchiveProjects: boolean; currentUser: User | null; authReady: boolean; notice: string;
+  today: string; data: AppData; projectData: AppData; allData: AppData; canArchiveProjects: boolean; currentUser: User | null; authReady: boolean; notice: string; noticeKind: "success" | "error" | "inline";
   login:(email:string,password:string)=>boolean; logout:()=>void; clearNotice:()=>void;
-  saveUser:(u:User)=>void|Promise<boolean>; addUser:(u:User)=>void|Promise<boolean>; saveTask:(t:Task)=>void|Promise<boolean>; addTask:(t:Task)=>void|Promise<boolean>;
-  deleteUser:(id:string)=>void|Promise<boolean>; saveProject:(p:Project)=>void|Promise<boolean>; addProject:(p:Project)=>void|Promise<boolean>; deleteProject:(id:string)=>void|Promise<boolean>; addArea:(projectId:string,name:string)=>void|Promise<boolean>;
+  saveUser:(u:User)=>boolean|Promise<boolean>; addUser:(u:User)=>boolean|Promise<boolean>; saveTask:(t:Task)=>boolean|Promise<boolean>; addTask:(t:Task)=>void|Promise<boolean>;
+  deleteUser:(id:string)=>boolean|Promise<boolean>; saveProject:(p:Project)=>void|Promise<boolean>; addProject:(p:Project)=>void|Promise<boolean>; deleteProject:(id:string)=>void|Promise<boolean>; addArea:(projectId:string,name:string)=>void|Promise<boolean>;
   changeProjectArchive:(id:string,reason:ProjectArchiveReason|null)=>Promise<boolean>;
   addInitiative:(i:Initiative)=>void|Promise<boolean|void>; addVersion:(v:DeliverableVersion)=>void|Promise<boolean|void>; deleteInitiative:(id:string)=>void|Promise<boolean>; deleteVersion:(id:string)=>void|Promise<boolean>; deleteTask:(id:string)=>void|Promise<boolean>; saveHierarchy:(i:Initiative[],v:DeliverableVersion[],t:Task[])=>void|Promise<boolean>;
   addInitiativeBundle:(bundle:InitiativeBundle)=>void|Promise<boolean|void>;
@@ -19,8 +21,18 @@ type Ctx = {
 };
 const Context=createContext<Ctx|null>(null);
 
-export function AppProvider({children,authenticatedUser,initialWorkspace,projectArchiving=false}:{children:React.ReactNode;authenticatedUser?:User;initialWorkspace?:AppData;projectArchiving?:boolean}){
-  const remote=Boolean(initialWorkspace),[allData,setAllData]=useState(initialWorkspace??initialData),[currentUserId,setCurrentUserId]=useState<string|null>(authenticatedUser?.id??null),[authReady,setAuthReady]=useState(remote),[notice,setNotice]=useState("");
+export function AppProvider({children,authenticatedUser,initialWorkspace,projectArchiving=false,initialToday}:{children:React.ReactNode;authenticatedUser?:User;initialWorkspace?:AppData;projectArchiving?:boolean;initialToday:string}){
+  const remote=Boolean(initialWorkspace),[allData,setAllData]=useState(initialWorkspace??initialData),[currentUserId,setCurrentUserId]=useState<string|null>(authenticatedUser?.id??null),[authReady,setAuthReady]=useState(remote),[feedback,setFeedback]=useState({message:"",kind:"success" as "success"|"error"|"inline"});
+  const setNotice=(message:string,kind:typeof feedback.kind="success")=>setFeedback({message,kind});
+  const clearNotice=useCallback(()=>setFeedback({message:"",kind:"success"}),[]);
+  const [today,setToday]=useState(initialToday);
+  useEffect(()=>{
+    const refresh=()=>setToday(asuncionDate());
+    refresh();
+    const timer=window.setInterval(refresh,15_000);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(timer);document.removeEventListener("visibilitychange",refresh);};
+  },[]);
   const initiativeCreation=useRef<Promise<void>>(Promise.resolve());
   useEffect(()=>{if(remote)return;const stored=localDataStore.load();if(stored?.users){setAllData({...stored,workPreferences:stored.workPreferences??initialData.workPreferences,projects:stored.projects.map(p=>({...p,areas:p.areas??initialData.projects.find(x=>x.id===p.id)?.areas??[p.area]})),users:stored.users.map(u=>{const seed=initialData.users.find(x=>x.id===u.id);return{...u,editableProjectIds:u.editableProjectIds??seed?.editableProjectIds??[],permissions:u.permissions??seed?.permissions??{manageUsers:false,manageProjects:false,manageSchedule:true}}})})}else setAllData(initialData);setCurrentUserId(localDataStore.loadSession());setAuthReady(true)},[]);
   useEffect(()=>{if(authReady&&!remote)localDataStore.save(allData)},[allData,authReady,remote]);
@@ -28,30 +40,29 @@ export function AppProvider({children,authenticatedUser,initialWorkspace,project
   const projectData=useMemo(()=>selectProjectWorkspace(allData,currentUser,true),[allData,currentUser]);
   const data=useMemo(()=>selectProjectWorkspace(allData,currentUser,false),[allData,currentUser]);
   const mutate=(fn:(d:AppData)=>AppData)=>setAllData(d=>fn(structuredClone(d)));
-  const errorMessage=(error:unknown)=>error instanceof Error&&error.message&&!error.message.includes("digest")?error.message:"No se pudo guardar el cambio. Intentá nuevamente.";
-  const sync=async(work:Promise<remoteActions.WorkspaceMutationResult>,success:string)=>{try{const result=await work;if(!result.ok){if(result.data)setAllData(result.data);setNotice(`${result.message} Código: ${result.errorId}`);return false}setAllData(result.data);setNotice(success);return true}catch(error){setNotice(errorMessage(error));return false}};
+  const sync=(work:Promise<remoteActions.WorkspaceMutationResult>,success:string,inline=false)=>
+    settleWorkspaceSave(work,success,setAllData,(message,kind)=>setNotice(message,inline?"inline":kind));
   const optimistic=(work:Promise<remoteActions.WorkspaceMutationResult>,change:(value:AppData)=>AppData,success:string)=>{
-    const previous=structuredClone(allData);
     mutate(change);
-    return work.then(result=>{if(!result.ok){setAllData(result.data??previous);setNotice(`${result.message} Código: ${result.errorId}`);return false}setAllData(result.data);setNotice(success);return true}).catch(error=>{setAllData(previous);setNotice(errorMessage(error));return false});
+    return settleWorkspaceSave(work,success,setAllData,setNotice,allData);
   };
   const login=(email:string,password:string)=>{const u=allData.users.find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.active);if(!u||password!=="consulting123")return false;setCurrentUserId(u.id);localDataStore.saveSession(u.id);return true};
   const logout=()=>{setCurrentUserId(null);localDataStore.saveSession(null)};
-  const saveUser=(user:User)=>{const change=(d:AppData)=>({...d,users:d.users.map(u=>u.id===user.id?user:u)});if(remote)return optimistic(remoteActions.runWorkspaceMutation({type:"saveUser",user,isNew:false}),change,"Usuario actualizado.");mutate(change)};
-  const addUser=(user:User)=>{const change=(d:AppData)=>({...d,users:[...d.users,user]});if(remote)return optimistic(remoteActions.runWorkspaceMutation({type:"saveUser",user,isNew:true}),change,"Usuario creado.");mutate(change)};
-  const deleteUser=(id:string)=>{if(id===currentUser?.id)return;const user=allData.users.find(item=>item.id===id),assigned=Boolean(user&&(allData.initiatives.some(item=>(item.owners?.length?item.owners:[item.owner]).includes(user.name))||allData.versions.some(item=>item.owner===user.name)||allData.tasks.some(item=>item.assignedTo===user.name||item.subtasks.some(subtask=>subtask.assignedTo===user.name))));if(assigned){setNotice("No se puede eliminar este usuario porque todavía tiene trabajo asignado. Reasigná sus iniciativas, versiones, tareas o subtareas primero.");return}const change=(d:AppData)=>({...d,users:d.users.filter(u=>u.id!==id)});if(remote)return optimistic(remoteActions.runWorkspaceMutation({type:"deleteUser",id}),change,"Usuario eliminado.");mutate(change);setNotice("Usuario eliminado.")};
+  const saveUser=(user:User)=>{const change=(d:AppData)=>({...d,users:d.users.map(u=>u.id===user.id?user:u)});if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveUser",user,isNew:false}),"Usuario actualizado.");mutate(change);setNotice("Usuario actualizado.");return true};
+  const addUser=(user:User)=>{const change=(d:AppData)=>({...d,users:[...d.users,user]});if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveUser",user,isNew:true}),"Usuario creado.");mutate(change);setNotice("Usuario creado.");return true};
+  const deleteUser=(id:string)=>{if(id===currentUser?.id){setNotice("No podés eliminar tu propia cuenta.","error");return false}const user=allData.users.find(item=>item.id===id),assigned=Boolean(user&&(allData.initiatives.some(item=>(item.owners?.length?item.owners:[item.owner]).includes(user.name))||allData.versions.some(item=>item.owner===user.name)||allData.tasks.some(item=>item.assignedTo===user.name||item.subtasks.some(subtask=>subtask.assignedTo===user.name))));if(assigned){setNotice("No se puede eliminar este usuario porque todavía tiene trabajo asignado. Reasigná sus iniciativas, versiones, tareas o subtareas primero.","error");return false}const change=(d:AppData)=>({...d,users:d.users.filter(u=>u.id!==id)});if(remote)return sync(remoteActions.runWorkspaceMutation({type:"deleteUser",id}),"Usuario eliminado.");mutate(change);setNotice("Usuario eliminado.");return true};
   const saveProject=(project:Project)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveProject",project,isNew:false}),"Proyecto actualizado.");mutate(d=>({...d,projects:d.projects.map(p=>p.id===project.id?project:p)}))};
   const changeProjectArchive=async(id:string,reason:ProjectArchiveReason|null)=>{
     if(!remote||!projectArchiving)return false;
     return reason===null
-      ? sync(remoteActions.runWorkspaceMutation({type:"reactivateProject",id}),"Proyecto reactivado.")
-      : sync(remoteActions.runWorkspaceMutation({type:"archiveProject",id,reason}),"Proyecto archivado.");
+      ? sync(remoteActions.runWorkspaceMutation({type:"reactivateProject",id}),"Proyecto reactivado.",true)
+      : sync(remoteActions.runWorkspaceMutation({type:"archiveProject",id,reason}),"Proyecto archivado.",true);
   };
   const addProject=(project:Project)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveProject",project,isNew:true}),"Proyecto creado.");mutate(d=>({...d,projects:[...d.projects,project],users:d.users.map(u=>u.role==="admin"?{...u,assignedProjectIds:[...u.assignedProjectIds,project.id],editableProjectIds:[...(u.editableProjectIds??[]),project.id]}:u)}));setNotice("Proyecto creado.")};
   const deleteProject=(id:string)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"deleteProject",id}),"Proyecto eliminado.");mutate(d=>{const initiativeIds=new Set(d.initiatives.filter(i=>i.projectId===id).map(i=>i.id));const versionIds=new Set(d.versions.filter(v=>initiativeIds.has(v.initiativeId)).map(v=>v.id));const taskIds=new Set(d.tasks.filter(t=>t.projectId===id).map(t=>t.id));return{...d,projects:d.projects.filter(p=>p.id!==id),initiatives:d.initiatives.filter(i=>i.projectId!==id),versions:d.versions.filter(v=>!versionIds.has(v.id)),tasks:d.tasks.filter(t=>t.projectId!==id),schedule:d.schedule.filter(b=>!taskIds.has(b.taskId)),users:d.users.map(u=>({...u,assignedProjectIds:u.assignedProjectIds.filter(x=>x!==id),editableProjectIds:(u.editableProjectIds??[]).filter(x=>x!==id)}))}});setNotice("Proyecto y contenido relacionado eliminados.")};
   const addArea=(projectId:string,name:string)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"addArea",projectId,name}),"Área creada.");mutate(d=>({...d,projects:d.projects.map(p=>p.id===projectId?{...p,areas:[...new Set([...(p.areas??[]),name])]}:p)}))};
   const resolveTask=(task:Task):Task=>{const owner=allData.users.find(user=>user.name===task.assignedTo||user.email.toLowerCase()===task.assignedTo.toLowerCase());return{...task,assignedProfileId:owner?.id,subtasks:task.subtasks.map(subtask=>{const assigned=allData.users.find(user=>user.name===(subtask.assignedTo||task.assignedTo)||user.email.toLowerCase()===(subtask.assignedTo||task.assignedTo).toLowerCase());return{...subtask,assignedProfileId:assigned?.id}})}};
-  const saveTask=(value:Task)=>{const task=resolveTask(value),change=(d:AppData)=>({...d,tasks:d.tasks.map(t=>t.id===task.id?task:t)});if(remote)return optimistic(remoteActions.runWorkspaceMutation({type:"saveTask",task,isNew:false}),change,"Tarea actualizada.");mutate(change)};
+  const saveTask=(value:Task)=>{const task=resolveTask(value),change=(d:AppData)=>({...d,tasks:d.tasks.map(t=>t.id===task.id?task:t)});const completed=task.status==="Completada"&&allData.tasks.find(current=>current.id===task.id)?.status!=="Completada";const message=completed?"Tarea completada.":"Tarea actualizada.";if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveTask",task,isNew:false}),message);mutate(change);setNotice(message);return true};
   const addTask=(value:Task)=>{const task=resolveTask(value);if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveTask",task,isNew:true}),"Tarea creada.");mutate(d=>({...d,tasks:[...d.tasks,task],versions:d.versions.map(v=>v.id===task.versionId?{...v,taskIds:[...v.taskIds,task.id]}:v)}))};
   const addInitiative=(i:Initiative)=>{if(remote){initiativeCreation.current=sync(remoteActions.runWorkspaceMutation({type:"saveInitiative",initiative:i,isNew:true}),"Iniciativa creada.").then(()=>undefined);return initiativeCreation.current}mutate(d=>({...d,initiatives:[...d.initiatives,i]}))};
   const addVersion=(version:DeliverableVersion)=>{if(remote)return initiativeCreation.current.then(()=>sync(remoteActions.runWorkspaceMutation({type:"saveVersion",version,isNew:true}),"Versión creada."));mutate(d=>({...d,versions:[...d.versions,version],initiatives:d.initiatives.map(i=>i.id===version.initiativeId?{...i,versionIds:[...i.versionIds,version.id]}:i)}))};
@@ -67,6 +78,6 @@ export function AppProvider({children,authenticatedUser,initialWorkspace,project
   const setBlockOutcome=(id:string,outcome:DailyTaskOutcome)=>{if(remote)return sync(remoteActions.runWorkspaceMutation({type:"setBlockOutcome",id,outcome}),outcome==="completed"?"Tarea completada.":"Avance actualizado.");mutate(d=>{const block=d.schedule.find(b=>b.id===id);if(!block)return d;const schedule=d.schedule.map(b=>b.id===id?{...b,outcome,completed:outcome==="completed",completedAt:outcome==="completed"?new Date().toISOString():undefined}:b);if(outcome!=="completed")return{...d,schedule,tasks:d.tasks.map(t=>t.id===block.taskId&&outcome==="advanced"&&t.status==="Pendiente"?{...t,status:"En curso"}:t)};const tasks=d.tasks.map(t=>t.id===block.taskId?{...t,status:"Completada" as const,progress:100,subtasks:t.subtasks.map(s=>({...s,completed:true}))}:t),trimmedSchedule=schedule.filter(b=>b.taskId!==block.taskId||b.date<=block.date),versions=d.versions.map(v=>{const related=tasks.filter(t=>t.versionId===v.id);return related.length&&related.every(t=>t.status==="Completada")?{...v,status:"Completada" as const}:v}),initiatives=d.initiatives.map(i=>{const related=versions.filter(v=>v.initiativeId===i.id);return related.length&&related.every(v=>v.status==="Completada")?{...i,status:"Completada" as const}:i});return{...d,schedule:trimmedSchedule,tasks,versions,initiatives}});setNotice(outcome==="completed"?"Tarea completada y retirada de los próximos días.":outcome==="advanced"?"Avance registrado para este día.":"Tarea marcada como pendiente.")};
   const scheduleTask=(taskId:string)=>{const block:ScheduleBlock={id:`b-${Date.now()}`,taskId,date:"2026-09-04",startTime:"15:00",endTime:"16:00",source:"suggested",completed:false};if(remote)return sync(remoteActions.runWorkspaceMutation({type:"saveBlock",block,isNew:true}),"Bloque agregado a la agenda.");mutate(d=>({...d,schedule:[...d.schedule,block]}));setNotice("Encontramos un espacio el viernes a las 15:00.")};
   const replan=()=>setNotice("La agenda se organiza eligiendo las tareas de cada día.");
-  return <Context.Provider value={{data,projectData,allData,canArchiveProjects:remote&&projectArchiving,currentUser,authReady,notice,login,logout,clearNotice:()=>setNotice(""),saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,changeProjectArchive,addArea,saveTask,addTask,addInitiative,addVersion,addInitiativeBundle,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,setBlockOutcome,scheduleTask,replan}}>{children}</Context.Provider>
+  return <Context.Provider value={{today,data,projectData,allData,canArchiveProjects:remote&&projectArchiving,currentUser,authReady,notice:feedback.message,noticeKind:feedback.kind,login,logout,clearNotice,saveUser,addUser,deleteUser,saveProject,addProject,deleteProject,changeProjectArchive,addArea,saveTask,addTask,addInitiative,addVersion,addInitiativeBundle,deleteInitiative,deleteVersion,deleteTask,saveHierarchy,toggleSubtask,saveBlock,deleteBlock,savePreferences,setBlockOutcome,scheduleTask,replan}}>{children}</Context.Provider>
 }
 export function useApp(){const v=useContext(Context);if(!v)throw new Error("useApp fuera de AppProvider");return v}

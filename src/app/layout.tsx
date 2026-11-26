@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { ThemeController } from "@/hooks/use-theme-preference";
+import { themeBootstrap } from "@/lib/theme";
 import "./globals.css";
 import "./features.css";
 import "./auth.css";
@@ -16,8 +18,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeBootstrap }} /></head>
+      <body><ThemeController />{children}</body>
     </html>
   );
 }
