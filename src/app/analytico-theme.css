@@ -307,6 +307,7 @@ html[data-theme="dark"]:has(.topbar) {
 :where(body:has(.topbar)) .topbar .avatar:hover { background: rgb(255 255 255 / 18%); }
 :where(body:has(.topbar)) .topbar :is(.brand, nav a, .contextual, .topbar-nav-create, .topbar-nav-toggle, .avatar):focus-visible { outline: 2px solid var(--an-cyan); outline-offset: 3px; }
 .topbar-nav-toggle {
+  font-size: 13px;
   background: rgb(255 255 255 / 12%);
   border: 1px solid rgb(255 255 255 / 28%);
   color: #fff;
